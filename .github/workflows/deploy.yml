@@ -7,6 +7,9 @@ on:
 
 jobs:
   deploy:
+    # Tạm tắt vì chưa có VPS thật + chưa cấu hình secrets VPS_HOST/VPS_USER/VPS_SSH_KEY.
+    # Khi có VPS, xóa dòng "if: false" bên dưới để bật lại.
+    if: false
     runs-on: ubuntu-latest
 
     steps:
