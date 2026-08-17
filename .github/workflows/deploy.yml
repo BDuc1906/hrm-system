@@ -14,21 +14,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to VPS via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # port: ${{ secrets.VPS_PORT }} # Bỏ comment nếu VPS không dùng port 22 mặc định
           script: |
+            set -e
             # Đường dẫn tới thư mục chứa project trên VPS của bạn
             cd /path/to/your/Deploy-HRM-System
-            
+
             # Cập nhật code mới nhất từ git
             git pull origin main
-            
+
             # Khởi động lại các container với code mới
-            docker-compose up -d --build
-            
-            # (Tùy chọn) Xóa các image cũ không còn sử dụng để giải phóng dung lượng
+            # Dùng "docker compose" (v2, có dấu cách) thay vì "docker-compose" (v1, đã ngừng phát triển).
+            # Nếu VPS của bạn chỉ có docker-compose v1, đổi lại thành "docker-compose".
+            docker compose up -d --build
+
+            # Xóa các image cũ không còn sử dụng để giải phóng dung lượng
             docker image prune -f
