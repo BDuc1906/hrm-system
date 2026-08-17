@@ -13,7 +13,13 @@
         <a-button v-if="auth.isAdmin" @click="calculateAll" :loading="calculating">
           <ThunderboltOutlined /> Tính lương tháng
         </a-button>
-        <a-button v-if="auth.isAdmin" class="payroll-approve-btn" type="primary" @click="approvePayroll" :loading="approving">
+        <a-button
+          v-if="auth.isAdmin"
+          class="payroll-approve-btn"
+          type="primary"
+          @click="approvePayroll"
+          :loading="approving"
+        >
           <MailOutlined /> Duyệt & Gửi Email
         </a-button>
         <a-button v-if="auth.isAdmin" type="primary" @click="openCreate"
@@ -127,11 +133,7 @@
               <a-button type="text" size="small" @click="openView(record)"
                 ><EyeOutlined style="color: var(--color-accent-blue)"
               /></a-button>
-              <a-button
-                v-if="auth.isAdmin"
-                type="text"
-                size="small"
-                @click="openEdit(record)"
+              <a-button v-if="auth.isAdmin" type="text" size="small" @click="openEdit(record)"
                 ><EditOutlined
               /></a-button>
               <a-popconfirm
@@ -167,35 +169,85 @@
       <!-- View mode -->
       <div v-if="viewOnly && viewRecord" class="payroll-detail">
         <a-descriptions :column="2" bordered size="small">
-          <a-descriptions-item label="Họ tên">{{ viewRecord.fullName || viewRecord.employeeName }}</a-descriptions-item>
-          <a-descriptions-item label="Mã NV / Phòng ban">{{ viewRecord.employeeCode || viewRecord.employeeId }} — {{ viewRecord.departmentName || '—' }}</a-descriptions-item>
+          <a-descriptions-item label="Họ tên">{{
+            viewRecord.fullName || viewRecord.employeeName
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Mã NV / Phòng ban"
+            >{{ viewRecord.employeeCode || viewRecord.employeeId }} —
+            {{ viewRecord.departmentName || '—' }}</a-descriptions-item
+          >
           <a-descriptions-item label="Kỳ lương">{{ formatPeriod(viewRecord) }}</a-descriptions-item>
-          <a-descriptions-item label="Loại thuế">{{ viewRecord.taxType === 'Progressive' ? 'Lũy tiến' : 'Khấu trừ 10%' }}</a-descriptions-item>
-          <a-descriptions-item label="Lương CB HĐ">{{ formatCurrency(viewRecord.contractBasicSalary) }}</a-descriptions-item>
-          <a-descriptions-item label="Hệ số lương">{{ viewRecord.salaryRatio || '1.0' }}</a-descriptions-item>
-          <a-descriptions-item label="Lương theo công TT">{{ formatCurrency(viewRecord.baseSalary) }}</a-descriptions-item>
-          <a-descriptions-item label="Thu nhập gộp (Gross)">{{ formatCurrency(viewRecord.grossIncome) }}</a-descriptions-item>
-          <a-descriptions-item label="Ngày công TT / Chuẩn">{{ viewRecord.workingDays || 0 }} / {{ viewRecord.standardWorkingDays || 26 }}</a-descriptions-item>
-          <a-descriptions-item label="Nghỉ phép / Không lương">{{ viewRecord.leaveDays || 0 }} / {{ viewRecord.unpaidLeaveDays || 0 }}</a-descriptions-item>
-          <a-descriptions-item label="Tăng ca (OT)">{{ formatCurrency(viewRecord.overtimePay) }}</a-descriptions-item>
-          <a-descriptions-item label="Thưởng">{{ formatCurrency(viewRecord.bonus) }}</a-descriptions-item>
-          <a-descriptions-item label="BHXH (8%)">{{ formatCurrency(viewRecord.bhxhEmployee) }}</a-descriptions-item>
-          <a-descriptions-item label="BHYT (1.5%)">{{ formatCurrency(viewRecord.bhytEmployee) }}</a-descriptions-item>
-          <a-descriptions-item label="BHTN (1%)">{{ formatCurrency(viewRecord.bhtnEmployee) }}</a-descriptions-item>
-          <a-descriptions-item label="Người phụ thuộc">{{ viewRecord.dependentCount || 0 }} người ({{ formatCurrency(viewRecord.dependentDeduction) }})</a-descriptions-item>
-          <a-descriptions-item label="Thu nhập tính thuế">{{ formatCurrency(viewRecord.taxableIncome) }}</a-descriptions-item>
-          <a-descriptions-item label="Thuế TNCN">{{ formatCurrency(viewRecord.personalTax) }}</a-descriptions-item>
-          <a-descriptions-item label="Khấu trừ khác">{{ formatCurrency(viewRecord.deduction) }}</a-descriptions-item>
-          <a-descriptions-item label="Tổng khấu trừ">{{ formatCurrency(viewRecord.totalDeduction) }}</a-descriptions-item>
+          <a-descriptions-item label="Loại thuế">{{
+            viewRecord.taxType === 'Progressive' ? 'Lũy tiến' : 'Khấu trừ 10%'
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Lương CB HĐ">{{
+            formatCurrency(viewRecord.contractBasicSalary)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Hệ số lương">{{
+            viewRecord.salaryRatio || '1.0'
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Lương theo công TT">{{
+            formatCurrency(viewRecord.baseSalary)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Thu nhập gộp (Gross)">{{
+            formatCurrency(viewRecord.grossIncome)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Ngày công TT / Chuẩn"
+            >{{ viewRecord.workingDays || 0 }} /
+            {{ viewRecord.standardWorkingDays || 26 }}</a-descriptions-item
+          >
+          <a-descriptions-item label="Nghỉ phép / Không lương"
+            >{{ viewRecord.leaveDays || 0 }} /
+            {{ viewRecord.unpaidLeaveDays || 0 }}</a-descriptions-item
+          >
+          <a-descriptions-item label="Tăng ca (OT)">{{
+            formatCurrency(viewRecord.overtimePay)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Thưởng">{{
+            formatCurrency(viewRecord.bonus)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="BHXH (8%)">{{
+            formatCurrency(viewRecord.bhxhEmployee)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="BHYT (1.5%)">{{
+            formatCurrency(viewRecord.bhytEmployee)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="BHTN (1%)">{{
+            formatCurrency(viewRecord.bhtnEmployee)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Người phụ thuộc"
+            >{{ viewRecord.dependentCount || 0 }} người ({{
+              formatCurrency(viewRecord.dependentDeduction)
+            }})</a-descriptions-item
+          >
+          <a-descriptions-item label="Thu nhập tính thuế">{{
+            formatCurrency(viewRecord.taxableIncome)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Thuế TNCN">{{
+            formatCurrency(viewRecord.personalTax)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Khấu trừ khác">{{
+            formatCurrency(viewRecord.deduction)
+          }}</a-descriptions-item>
+          <a-descriptions-item label="Tổng khấu trừ">{{
+            formatCurrency(viewRecord.totalDeduction)
+          }}</a-descriptions-item>
           <a-descriptions-item label="Trạng thái bảng lương">
-            <span class="status-badge" :class="getStatusBadge(viewRecord.payrollStatus)">{{ getStatusLabel(viewRecord.payrollStatus) }}</span>
+            <span class="status-badge" :class="getStatusBadge(viewRecord.payrollStatus)">{{
+              getStatusLabel(viewRecord.payrollStatus)
+            }}</span>
           </a-descriptions-item>
           <a-descriptions-item v-if="viewRecord.employeeStatus" label="TT Nhân viên">
-            <span class="status-badge" :class="viewRecord.employeeStatus === 'Active' ? 'badge-success' : 'badge-default'">
+            <span
+              class="status-badge"
+              :class="viewRecord.employeeStatus === 'Active' ? 'badge-success' : 'badge-default'"
+            >
               {{ viewRecord.employeeStatus === 'Active' ? 'Đang làm việc' : 'Đã nghỉ việc' }}
             </span>
           </a-descriptions-item>
-          <a-descriptions-item v-if="viewRecord.approvedAt" label="Duyệt lúc">{{ new Date(viewRecord.approvedAt).toLocaleString('vi-VN') }}</a-descriptions-item>
+          <a-descriptions-item v-if="viewRecord.approvedAt" label="Duyệt lúc">{{
+            new Date(viewRecord.approvedAt).toLocaleString('vi-VN')
+          }}</a-descriptions-item>
         </a-descriptions>
         <a-divider />
         <div
@@ -211,7 +263,9 @@
         >
           <div>
             <div style="font-weight: 600; font-size: 15px">Thực lĩnh (NET)</div>
-            <div style="font-size: 12px; color: var(--color-text-muted)">Tổng khấu trừ: {{ formatCurrency(viewRecord.totalDeduction) }}</div>
+            <div style="font-size: 12px; color: var(--color-text-muted)">
+              Tổng khấu trừ: {{ formatCurrency(viewRecord.totalDeduction) }}
+            </div>
           </div>
           <span
             style="
@@ -225,7 +279,6 @@
           </span>
         </div>
       </div>
-
 
       <!-- Edit/Create mode -->
       <a-form v-else :model="form" layout="vertical" ref="formRef" :rules="rules">
@@ -432,9 +485,7 @@ const rules = {
 const colors = ['#00b14f', '#00b4d8', '#7c5cfc', '#ffb020', '#ff4757']
 const getColor = (n) => colors[(n || '').charCodeAt(0) % colors.length]
 const formatCurrency = (v) =>
-  v === null || v === undefined || v === ''
-    ? '—'
-    : new Intl.NumberFormat('vi-VN').format(v) + '₫'
+  v === null || v === undefined || v === '' ? '—' : new Intl.NumberFormat('vi-VN').format(v) + '₫'
 const fmt = (v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 const prs = (v) => v.replace(/,/g, '')
 const formatPeriod = (r) => {
@@ -452,13 +503,17 @@ const formatPeriod = (r) => {
   return '—'
 }
 const getStatusBadge = (s) =>
-  ({ Draft: 'badge-default', Approved: 'badge-success', Confirmed: 'badge-info', Paid: 'badge-success' })[s] || 'badge-default'
+  ({
+    Draft: 'badge-default',
+    Approved: 'badge-success',
+    Confirmed: 'badge-info',
+    Paid: 'badge-success',
+  })[s] || 'badge-default'
 const getStatusLabel = (s) =>
-  ({ Draft: 'Nháp', Approved: 'Đã duyệt', Confirmed: 'Đã xác nhận', Paid: 'Đã thanh toán' })[s] || (s ? s : 'Đã tính')
+  ({ Draft: 'Nháp', Approved: 'Đã duyệt', Confirmed: 'Đã xác nhận', Paid: 'Đã thanh toán' })[s] ||
+  (s ? s : 'Đã tính')
 
-const totalAmount = computed(() =>
-  payrolls.value.reduce((sum, r) => sum + (r.finalSalary || 0), 0),
-)
+const totalAmount = computed(() => payrolls.value.reduce((sum, r) => sum + (r.finalSalary || 0), 0))
 
 const columns = [
   { title: 'Nhân viên', key: 'employee', dataIndex: 'employeeName' },
@@ -508,10 +563,14 @@ async function calculateAll() {
   calculating.value = true
   try {
     // Backend yêu cầu body JSON: { month: 'YYYY-MM' }
-    const body = { month: filterMonth.value ? filterMonth.value.format('YYYY-MM') : dayjs().format('YYYY-MM') }
+    const body = {
+      month: filterMonth.value ? filterMonth.value.format('YYYY-MM') : dayjs().format('YYYY-MM'),
+    }
     const res = await payrollApiService.calculateAll(body)
     const result = res.data
-    message.success(`Đã tính lương tháng ${body.month}! Tạo mới: ${result?.created ?? 0}, Tổng: ${result?.totalPayrolls ?? 0} bảng lương.`)
+    message.success(
+      `Đã tính lương tháng ${body.month}! Tạo mới: ${result?.created ?? 0}, Tổng: ${result?.totalPayrolls ?? 0} bảng lương.`,
+    )
     loadPayrolls()
   } catch (e) {
     message.error(e.response?.data?.message || e.response?.data?.error || 'Tính lương thất bại')
@@ -557,7 +616,7 @@ function openEdit(rec) {
   Object.assign(form, {
     employeeId: rec.employeeId,
     employeeName: rec.employeeName || '',
-    month: rec.payPeriod ? dayjs(rec.payPeriod, 'YYYY-MM') : (rec.month ? dayjs(rec.month) : dayjs()),
+    month: rec.payPeriod ? dayjs(rec.payPeriod, 'YYYY-MM') : rec.month ? dayjs(rec.month) : dayjs(),
     contractBasicSalary: rec.contractBasicSalary || rec.baseSalary || 0,
     salaryRatio: rec.salaryRatio || 1.0,
     taxType: rec.taxType || 'Progressive',
@@ -626,10 +685,12 @@ async function savePayroll() {
 async function approvePayroll() {
   approving.value = true
   try {
-    const period = filterMonth.value ? filterMonth.value.format('YYYY-MM') : dayjs().format('YYYY-MM')
+    const period = filterMonth.value
+      ? filterMonth.value.format('YYYY-MM')
+      : dayjs().format('YYYY-MM')
     const payload = {
       payPeriod: period,
-      sendEmail: true
+      sendEmail: true,
     }
     const res = await payrollApiService.approve(payload)
     const result = res.data || {}

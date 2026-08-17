@@ -3,15 +3,16 @@
     <div class="page-header">
       <div>
         <h1 class="page-title">Nhân viên</h1>
-        <p style="margin:4px 0 0; font-size:14px; color:var(--color-text-muted);">
+        <p style="margin: 4px 0 0; font-size: 14px; color: var(--color-text-muted)">
           Quản lý hồ sơ nhân viên toàn công ty
         </p>
       </div>
-      <div style="display:flex; gap:10px;">
+      <div style="display: flex; gap: 10px">
         <a-button @click="loadAll"><ReloadOutlined /> Làm mới</a-button>
         <a-button
           v-if="activeTab === 'list' && (auth.isAdmin || auth.isHR)"
-          type="primary" @click="openCreate"
+          type="primary"
+          @click="openCreate"
         >
           <PlusOutlined /> Thêm nhân viên
         </a-button>
@@ -23,7 +24,7 @@
         <!-- ─── TAB 1: DANH SÁCH ─────────────────────────────── -->
         <a-tab-pane key="list" tab="Danh sách">
           <!-- Filters -->
-          <a-row :gutter="[16,12]" align="middle" style="margin-bottom:16px;">
+          <a-row :gutter="[16, 12]" align="middle" style="margin-bottom: 16px">
             <a-col :xs="24" :sm="12" :lg="8">
               <a-input-search
                 v-model:value="search"
@@ -37,7 +38,8 @@
               <a-select
                 v-model:value="filterStatus"
                 placeholder="Trạng thái"
-                allow-clear style="width:100%;"
+                allow-clear
+                style="width: 100%"
                 @change="loadEmployees"
               >
                 <a-select-option value="">Tất cả</a-select-option>
@@ -46,7 +48,7 @@
               </a-select>
             </a-col>
             <a-col :xs="24" :sm="4" :lg="4">
-              <span style="font-size:13px; color:var(--color-text-muted);">
+              <span style="font-size: 13px; color: var(--color-text-muted)">
                 <UserOutlined /> {{ total }} nhân viên
               </span>
             </a-col>
@@ -58,35 +60,39 @@
             :columns="columns"
             :loading="loading"
             :pagination="{
-              current: page, pageSize: pageSize, total,
-              showSizeChanger: true, showTotal: t => `${t} bản ghi`
+              current: page,
+              pageSize: pageSize,
+              total,
+              showSizeChanger: true,
+              showTotal: (t) => `${t} bản ghi`,
             }"
             row-key="id"
             @change="onTableChange"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'fullName'">
-                <div style="display:flex; align-items:center; gap:10px;">
+                <div style="display: flex; align-items: center; gap: 10px">
                   <a-avatar
                     :style="{
                       background: getColor(record.fullName),
-                      fontFamily: 'var(--font-display)', fontWeight: 700
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
                     }"
                   >
                     {{ (record.fullName || 'N')[0] }}
                   </a-avatar>
                   <div>
-                    <div style="font-weight:600; color:var(--color-text);">
+                    <div style="font-weight: 600; color: var(--color-text)">
                       {{ record.fullName }}
                       <a-tag
                         v-if="isWithoutAccount(record.id)"
                         color="orange"
-                        style="margin-left:6px; font-size:11px; line-height:18px; padding:0 6px;"
+                        style="margin-left: 6px; font-size: 11px; line-height: 18px; padding: 0 6px"
                       >
                         Chưa có TK
                       </a-tag>
                     </div>
-                    <div style="font-size:12px; color:var(--color-text-muted);">
+                    <div style="font-size: 12px; color: var(--color-text-muted)">
                       {{ record.email }}
                     </div>
                   </div>
@@ -105,7 +111,7 @@
                 </span>
               </template>
               <template v-else-if="column.key === 'salary'">
-                <span style="font-weight:600; color:var(--color-text);">
+                <span style="font-weight: 600; color: var(--color-text)">
                   {{ formatCurrency(record.baseSalary || record.salary) }}
                 </span>
               </template>
@@ -113,16 +119,17 @@
                 <a-space>
                   <a-tooltip title="Xem chi tiết">
                     <a-button size="small" type="text" @click="openView(record)">
-                      <EyeOutlined style="color:var(--color-primary);" />
+                      <EyeOutlined style="color: var(--color-primary)" />
                     </a-button>
                   </a-tooltip>
                   <a-button size="small" type="text" @click="openEdit(record)">
-                    <EditOutlined style="color:var(--color-accent-blue);" />
+                    <EditOutlined style="color: var(--color-accent-blue)" />
                   </a-button>
                   <a-popconfirm
                     v-if="auth.isAdmin"
                     title="Xác nhận xoá nhân viên này?"
-                    ok-text="Xoá" cancel-text="Huỷ"
+                    ok-text="Xoá"
+                    cancel-text="Huỷ"
                     ok-type="danger"
                     @confirm="deleteEmployee(record.id)"
                   >
@@ -137,20 +144,19 @@
         </a-tab-pane>
 
         <!-- ─── TAB 2: TÀI KHOẢN (chỉ Admin / HR) ───────────── -->
-        <a-tab-pane
-          v-if="auth.isAdmin || auth.isHR"
-          key="account" tab="Tài khoản"
-        >
+        <a-tab-pane v-if="auth.isAdmin || auth.isHR" key="account" tab="Tài khoản">
           <a-alert
-            type="info" show-icon
-            style="margin-bottom:16px; border-radius:8px;"
+            type="info"
+            show-icon
+            style="margin-bottom: 16px; border-radius: 8px"
             message="Danh sách nhân viên chưa có tài khoản đăng nhập"
             description="Bấm 'Tạo tài khoản' để cấp username/password cho nhân viên. Sau khi tạo, nhân viên có thể đăng nhập vào hệ thống."
           />
 
           <a-alert
-            type="warning" show-icon
-            style="margin-bottom:16px; border-radius:8px;"
+            type="warning"
+            show-icon
+            style="margin-bottom: 16px; border-radius: 8px"
             message="Lưu ý: Chỉ cần đổi trạng thái nhân viên sang &lsquo;Nghỉ việc&rsquo; là tài khoản bị khóa ngay — không cần xóa bản ghi."
           />
 
@@ -159,49 +165,46 @@
             :columns="accountColumns"
             :loading="accountLoading"
             row-key="employeeId"
-            :pagination="{ pageSize: 10, showTotal: t => `${t} nhân viên` }"
+            :pagination="{ pageSize: 10, showTotal: (t) => `${t} nhân viên` }"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'fullName'">
-                <div style="display:flex; align-items:center; gap:10px;">
+                <div style="display: flex; align-items: center; gap: 10px">
                   <a-avatar
                     :style="{
                       background: getColor(record.fullName),
-                      fontFamily: 'var(--font-display)', fontWeight: 700
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
                     }"
                   >
                     {{ (record.fullName || 'N')[0] }}
                   </a-avatar>
                   <div>
-                    <div style="font-weight:600;">{{ record.fullName }}</div>
-                    <div style="font-size:12px; color:var(--color-text-muted);">
+                    <div style="font-weight: 600">{{ record.fullName }}</div>
+                    <div style="font-size: 12px; color: var(--color-text-muted)">
                       {{ record.email }}
                     </div>
                   </div>
                 </div>
               </template>
               <template v-else-if="column.key === 'actions'">
-                <a-button
-                  type="primary" size="small"
-                  @click="openCreateAccount(record)"
-                >
+                <a-button type="primary" size="small" @click="openCreateAccount(record)">
                   <UserAddOutlined /> Tạo tài khoản
                 </a-button>
               </template>
             </template>
             <template #emptyText>
-              <a-empty
-                description="Tất cả nhân viên đều đã có tài khoản"
-              />
+              <a-empty description="Tất cả nhân viên đều đã có tài khoản" />
             </template>
           </a-table>
 
-          <a-divider orientation="left" style="margin-top:24px; font-weight:600;">
+          <a-divider orientation="left" style="margin-top: 24px; font-weight: 600">
             <SafetyCertificateOutlined /> Tài khoản đã có
           </a-divider>
           <a-alert
-            type="info" show-icon
-            style="margin-bottom:12px; border-radius:8px;"
+            type="info"
+            show-icon
+            style="margin-bottom: 12px; border-radius: 8px"
             message="Danh sách tài khoản hiện có để xem username, vai trò và trạng thái đăng nhập."
           />
           <a-table
@@ -209,25 +212,43 @@
             :columns="existingAccountColumns"
             :loading="existingAccountLoading"
             row-key="accountId"
-            :pagination="{ pageSize: 10, showTotal: t => `${t} tài khoản` }"
+            :pagination="{ pageSize: 10, showTotal: (t) => `${t} tài khoản` }"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'fullName'">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <a-avatar :style="{ background: getColor(record.fullName), fontFamily: 'var(--font-display)', fontWeight: 700 }">
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <a-avatar
+                    :style="{
+                      background: getColor(record.fullName),
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
+                    }"
+                  >
                     {{ (record.fullName || 'N')[0] }}
                   </a-avatar>
                   <div>
-                    <div style="font-weight:600;">{{ record.fullName }}</div>
-                    <div style="font-size:12px; color:var(--color-text-muted);">{{ record.email || record.username }}</div>
+                    <div style="font-weight: 600">{{ record.fullName }}</div>
+                    <div style="font-size: 12px; color: var(--color-text-muted)">
+                      {{ record.email || record.username }}
+                    </div>
                   </div>
                 </div>
               </template>
               <template v-else-if="column.key === 'username'">
-                <span style="font-weight:600;">{{ record.username }}</span>
+                <span style="font-weight: 600">{{ record.username }}</span>
               </template>
               <template v-else-if="column.key === 'role'">
-                <a-tag :color="record.role === 'Admin' ? 'red' : record.role === 'HR' ? 'blue' : record.role === 'Manager' ? 'gold' : 'default'">
+                <a-tag
+                  :color="
+                    record.role === 'Admin'
+                      ? 'red'
+                      : record.role === 'HR'
+                        ? 'blue'
+                        : record.role === 'Manager'
+                          ? 'gold'
+                          : 'default'
+                  "
+                >
                   {{ getRoleLabel(record.role) }}
                 </a-tag>
               </template>
@@ -236,7 +257,10 @@
                   class="status-badge"
                   :class="record.accountStatus === 'active' ? 'badge-success' : 'badge-default'"
                 >
-                  <span class="dot" :class="record.accountStatus === 'active' ? 'online' : 'offline'"></span>
+                  <span
+                    class="dot"
+                    :class="record.accountStatus === 'active' ? 'online' : 'offline'"
+                  ></span>
                   {{ record.accountStatusLabel }}
                 </span>
               </template>
@@ -265,30 +289,39 @@
           </a-table>
 
           <!-- Danh sách NV có TK nhưng đã bị khóa (Inactive) -->
-          <a-divider orientation="left" style="margin-top:24px; font-weight:600;">
+          <a-divider orientation="left" style="margin-top: 24px; font-weight: 600">
             <LockOutlined /> Nhân viên đã nghỉ việc — tài khoản bị khóa
           </a-divider>
           <a-alert
-            type="success" show-icon
-            style="margin-bottom:12px; border-radius:8px;"
+            type="success"
+            show-icon
+            style="margin-bottom: 12px; border-radius: 8px"
             message="Nhân viên Inactive không thể đăng nhập. Bản ghi được giữ nguyên để phục vụ lịch sử lương, thuế TNCN và thanh tra lao động."
           />
           <a-table
-            :data-source="employees.filter(e => e.status === 'Inactive')"
+            :data-source="employees.filter((e) => e.status === 'Inactive')"
             :columns="lockedAccountColumns"
             size="small"
             row-key="id"
-            :pagination="{ pageSize: 10, showTotal: t => `${t} nhân viên` }"
+            :pagination="{ pageSize: 10, showTotal: (t) => `${t} nhân viên` }"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'fullName'">
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <a-avatar :style="{ background: getColor(record.fullName), fontFamily: 'var(--font-display)', fontWeight: 700 }">
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <a-avatar
+                    :style="{
+                      background: getColor(record.fullName),
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
+                    }"
+                  >
                     {{ (record.fullName || 'N')[0] }}
                   </a-avatar>
                   <div>
-                    <div style="font-weight:600;">{{ record.fullName }}</div>
-                    <div style="font-size:12px; color:var(--color-text-muted);">{{ record.email }}</div>
+                    <div style="font-weight: 600">{{ record.fullName }}</div>
+                    <div style="font-size: 12px; color: var(--color-text-muted)">
+                      {{ record.email }}
+                    </div>
                   </div>
                 </div>
               </template>
@@ -300,7 +333,8 @@
               <template v-else-if="column.key === 'actions'">
                 <a-button
                   v-if="auth.isAdmin"
-                  size="small" type="text"
+                  size="small"
+                  type="text"
                   @click="openResetPassword({ ...record, employeeId: record.id })"
                 >
                   <KeyOutlined /> Đặt lại mật khẩu
@@ -317,18 +351,25 @@
       v-model:open="modalOpen"
       :title="editingId ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'"
       :confirm-loading="saving"
-      ok-text="Lưu" cancel-text="Huỷ"
+      ok-text="Lưu"
+      cancel-text="Huỷ"
       width="680px"
       @ok="saveEmployee"
       @cancel="resetForm"
       destroy-on-close
     >
       <a-form :model="form" layout="vertical" ref="formRef" :rules="rules">
-        <a-divider orientation="left" style="margin-top: 0; font-weight: 600;"><UserOutlined /> Thông tin cơ bản & Công việc</a-divider>
+        <a-divider orientation="left" style="margin-top: 0; font-weight: 600"
+          ><UserOutlined /> Thông tin cơ bản & Công việc</a-divider
+        >
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item name="employeeCode" label="Mã nhân viên">
-              <a-input v-model:value="form.employeeCode" placeholder="Mã NV (VD: NV001)" :disabled="!!editingId" />
+              <a-input
+                v-model:value="form.employeeCode"
+                placeholder="Mã NV (VD: NV001)"
+                :disabled="!!editingId"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="12">
@@ -351,7 +392,7 @@
               <a-select
                 v-model:value="form.departmentId"
                 placeholder="Chọn phòng ban"
-                style="width:100%;"
+                style="width: 100%"
                 allow-clear
                 show-search
                 :filter-option="filterDept"
@@ -366,12 +407,16 @@
           </a-col>
           <a-col :span="12">
             <a-form-item name="hireDate" label="Ngày vào làm">
-              <a-date-picker v-model:value="form.hireDate" format="DD/MM/YYYY" style="width:100%;" />
+              <a-date-picker
+                v-model:value="form.hireDate"
+                format="DD/MM/YYYY"
+                style="width: 100%"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item name="status" label="Trạng thái">
-              <a-select v-model:value="form.status" style="width:100%;">
+              <a-select v-model:value="form.status" style="width: 100%">
                 <a-select-option value="Active">Đang làm việc</a-select-option>
                 <a-select-option value="Inactive">Nghỉ việc</a-select-option>
               </a-select>
@@ -379,7 +424,7 @@
           </a-col>
           <a-col :span="12">
             <a-form-item name="contractType" label="Loại hình công việc">
-              <a-select v-model:value="form.contractType" style="width:100%;">
+              <a-select v-model:value="form.contractType" style="width: 100%">
                 <a-select-option value="Full-time">Chính thức (Full-time)</a-select-option>
                 <a-select-option value="Part-time">Bán thời gian (Part-time)</a-select-option>
                 <a-select-option value="Probation">Thử việc (Probation)</a-select-option>
@@ -393,7 +438,9 @@
           </a-col>
         </a-row>
 
-        <a-divider orientation="left" style="font-weight: 600;"><SafetyCertificateOutlined /> Thông tin cá nhân & Thuế</a-divider>
+        <a-divider orientation="left" style="font-weight: 600"
+          ><SafetyCertificateOutlined /> Thông tin cá nhân & Thuế</a-divider
+        >
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item name="identityNumber" label="Số CMND/CCCD">
@@ -407,47 +454,71 @@
           </a-col>
           <a-col :span="12">
             <a-form-item name="dependentsCount" label="Số người phụ thuộc">
-              <a-input-number v-model:value="form.dependentsCount" :min="0" :max="100" style="width: 100%;" />
+              <a-input-number
+                v-model:value="form.dependentsCount"
+                :min="0"
+                :max="100"
+                style="width: 100%"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item name="baseSalary">
               <template #label>
                 Lương cơ bản (VND)
-                <a-tooltip v-if="auth.isAdmin" title="Admin không được sửa lương cơ bản trực tiếp. Điều chỉnh thông qua hợp đồng lao động.">
-                  <LockOutlined style="color:var(--color-text-muted); margin-left:4px; font-size:12px;" />
+                <a-tooltip
+                  v-if="auth.isAdmin"
+                  title="Admin không được sửa lương cơ bản trực tiếp. Điều chỉnh thông qua hợp đồng lao động."
+                >
+                  <LockOutlined
+                    style="color: var(--color-text-muted); margin-left: 4px; font-size: 12px"
+                  />
                 </a-tooltip>
               </template>
               <a-input-number
                 v-model:value="form.baseSalary"
                 :disabled="auth.isAdmin && !!editingId"
-                :formatter="v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
-                :parser="v => v.replace(/,/g, '')"
-                style="width:100%;"
+                :formatter="(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+                :parser="(v) => v.replace(/,/g, '')"
+                style="width: 100%"
                 placeholder="10,000,000"
               />
-              <div v-if="auth.isAdmin && !!editingId" style="font-size:11px; color:var(--color-text-muted); margin-top:3px;">
+              <div
+                v-if="auth.isAdmin && !!editingId"
+                style="font-size: 11px; color: var(--color-text-muted); margin-top: 3px"
+              >
                 🔒 Chỉ có thể điều chỉnh qua hợp đồng lao động
               </div>
             </a-form-item>
           </a-col>
         </a-row>
 
-        <a-divider orientation="left" style="font-weight: 600;"><BankOutlined /> Tài khoản ngân hàng</a-divider>
+        <a-divider orientation="left" style="font-weight: 600"
+          ><BankOutlined /> Tài khoản ngân hàng</a-divider
+        >
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item name="bankName" label="Tên ngân hàng">
-              <a-input v-model:value="form.bankName" placeholder="Ví dụ: Vietcombank, Techcombank..." />
+              <a-input
+                v-model:value="form.bankName"
+                placeholder="Ví dụ: Vietcombank, Techcombank..."
+              />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item name="bankAccountNumber" label="Số tài khoản">
-              <a-input v-model:value="form.bankAccountNumber" placeholder="Số tài khoản ngân hàng..." />
+              <a-input
+                v-model:value="form.bankAccountNumber"
+                placeholder="Số tài khoản ngân hàng..."
+              />
             </a-form-item>
           </a-col>
           <a-col :span="24">
             <a-form-item name="bankBranch" label="Chi nhánh">
-              <a-input v-model:value="form.bankBranch" placeholder="Ví dụ: Chi nhánh Hà Nội, Hoàn Kiếm..." />
+              <a-input
+                v-model:value="form.bankBranch"
+                placeholder="Ví dụ: Chi nhánh Hà Nội, Hoàn Kiếm..."
+              />
             </a-form-item>
           </a-col>
         </a-row>
@@ -462,27 +533,48 @@
       width="850px"
       destroy-on-close
     >
-      <div v-if="viewRecord" style="padding:4px 0;">
+      <div v-if="viewRecord" style="padding: 4px 0">
         <!-- Avatar + tên -->
-        <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--color-border);">
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--color-border);
+          "
+        >
           <a-avatar
             :size="56"
-            :style="{ background: getColor(viewRecord.fullName), fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '22px' }"
+            :style="{
+              background: getColor(viewRecord.fullName),
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              fontSize: '22px',
+            }"
           >
             {{ (viewRecord.fullName || 'N')[0] }}
           </a-avatar>
-          <div style="flex: 1;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size:18px; font-weight:700; color:var(--color-text);">{{ viewRecord.fullName }}</span>
+          <div style="flex: 1">
+            <div style="display: flex; align-items: center; gap: 8px">
+              <span style="font-size: 18px; font-weight: 700; color: var(--color-text)">{{
+                viewRecord.fullName
+              }}</span>
               <a-tag v-if="isWithoutAccount(viewRecord.id)" color="orange">Chưa có TK</a-tag>
             </div>
-            <div style="font-size:13px; color:var(--color-text-muted); margin-top:2px;">{{ viewRecord.email }}</div>
+            <div style="font-size: 13px; color: var(--color-text-muted); margin-top: 2px">
+              {{ viewRecord.email }}
+            </div>
             <span
               class="status-badge"
               :class="viewRecord.status === 'Active' ? 'badge-success' : 'badge-default'"
-              style="margin-top:6px; display:inline-flex;"
+              style="margin-top: 6px; display: inline-flex"
             >
-              <span class="dot" :class="viewRecord.status === 'Active' ? 'online' : 'offline'"></span>
+              <span
+                class="dot"
+                :class="viewRecord.status === 'Active' ? 'online' : 'offline'"
+              ></span>
               {{ viewRecord.status === 'Active' ? 'Đang làm việc' : 'Nghỉ việc' }}
             </span>
           </div>
@@ -491,38 +583,74 @@
         <a-tabs v-model:activeKey="detailActiveTab" @change="onDetailTabChange">
           <!-- Tab 1: Thông tin chung -->
           <a-tab-pane key="general" tab="Thông tin cá nhân & Công việc">
-            <a-descriptions :column="2" size="small" bordered style="margin-top: 10px;">
-              <a-descriptions-item label="Mã nhân viên" :span="1">{{ viewRecord.employeeCode || '—' }}</a-descriptions-item>
-              <a-descriptions-item label="Số CMND/CCCD" :span="1">{{ viewRecord.identityNumber || '—' }}</a-descriptions-item>
-              <a-descriptions-item label="Số điện thoại" :span="1">{{ viewRecord.phone || '—' }}</a-descriptions-item>
-              <a-descriptions-item label="Phòng ban" :span="1">{{ departmentMap[viewRecord.departmentId] || viewRecord.departmentName || '—' }}</a-descriptions-item>
-              <a-descriptions-item label="Chức vụ" :span="1">{{ viewRecord.position || '—' }}</a-descriptions-item>
-              <a-descriptions-item label="Ngày vào làm" :span="1">{{ viewRecord.hireDate ? dayjs(viewRecord.hireDate).format('DD/MM/YYYY') : '—' }}</a-descriptions-item>
-              <a-descriptions-item label="Địa chỉ" :span="2">{{ viewRecord.address || '—' }}</a-descriptions-item>
+            <a-descriptions :column="2" size="small" bordered style="margin-top: 10px">
+              <a-descriptions-item label="Mã nhân viên" :span="1">{{
+                viewRecord.employeeCode || '—'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="Số CMND/CCCD" :span="1">{{
+                viewRecord.identityNumber || '—'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="Số điện thoại" :span="1">{{
+                viewRecord.phone || '—'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="Phòng ban" :span="1">{{
+                departmentMap[viewRecord.departmentId] || viewRecord.departmentName || '—'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="Chức vụ" :span="1">{{
+                viewRecord.position || '—'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="Ngày vào làm" :span="1">{{
+                viewRecord.hireDate ? dayjs(viewRecord.hireDate).format('DD/MM/YYYY') : '—'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="Địa chỉ" :span="2">{{
+                viewRecord.address || '—'
+              }}</a-descriptions-item>
             </a-descriptions>
           </a-tab-pane>
 
           <!-- Tab 2: Thuế & Tài chính -->
           <a-tab-pane key="finance" tab="Thuế, Lương & Ngân hàng">
-            <a-descriptions :column="2" size="small" bordered style="margin-top: 10px;">
+            <a-descriptions :column="2" size="small" bordered style="margin-top: 10px">
               <a-descriptions-item label="Lương cơ bản" :span="1">
-                <span style="font-weight:600; color:var(--color-primary);">{{ formatCurrency(viewRecord.baseSalary || viewRecord.salary) }}</span>
+                <span style="font-weight: 600; color: var(--color-primary)">{{
+                  formatCurrency(viewRecord.baseSalary || viewRecord.salary)
+                }}</span>
               </a-descriptions-item>
-              <a-descriptions-item label="Mã số thuế" :span="1">{{ viewRecord.taxCode || '—' }}</a-descriptions-item>
-              <a-descriptions-item label="Người phụ thuộc" :span="1">{{ viewRecord.dependentsCount ?? 0 }} người</a-descriptions-item>
+              <a-descriptions-item label="Mã số thuế" :span="1">{{
+                viewRecord.taxCode || '—'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="Người phụ thuộc" :span="1"
+                >{{ viewRecord.dependentsCount ?? 0 }} người</a-descriptions-item
+              >
               <a-descriptions-item label="Loại hợp đồng hiện tại" :span="1">
                 <a-tag color="blue">{{ viewRecord.contractType || 'Chưa ký HĐ' }}</a-tag>
               </a-descriptions-item>
-              <a-descriptions-item label="Tên ngân hàng" :span="1">{{ viewRecord.bankName || '—' }}</a-descriptions-item>
-              <a-descriptions-item label="Số tài khoản" :span="1">{{ viewRecord.bankAccountNumber || '—' }}</a-descriptions-item>
-              <a-descriptions-item label="Chi nhánh ngân hàng" :span="2">{{ viewRecord.bankBranch || '—' }}</a-descriptions-item>
+              <a-descriptions-item label="Tên ngân hàng" :span="1">{{
+                viewRecord.bankName || '—'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="Số tài khoản" :span="1">{{
+                viewRecord.bankAccountNumber || '—'
+              }}</a-descriptions-item>
+              <a-descriptions-item label="Chi nhánh ngân hàng" :span="2">{{
+                viewRecord.bankBranch || '—'
+              }}</a-descriptions-item>
             </a-descriptions>
           </a-tab-pane>
 
           <!-- Tab 3: Hợp đồng lao động -->
           <a-tab-pane key="contracts" tab="Hợp đồng lao động" v-if="auth.isAdmin || auth.isHR">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 10px;">
-              <span style="font-weight: 600; color: var(--color-text);"><HistoryOutlined /> Lịch sử hợp đồng</span>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+                margin-top: 10px;
+              "
+            >
+              <span style="font-weight: 600; color: var(--color-text)"
+                ><HistoryOutlined /> Lịch sử hợp đồng</span
+              >
               <a-button type="primary" size="small" @click="openCreateContract">
                 <PlusOutlined /> Ký hợp đồng mới
               </a-button>
@@ -538,7 +666,9 @@
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.key === 'contractNumber'">
-                  <span style="font-weight: 600; color: var(--color-text);">{{ record.contractNumber }}</span>
+                  <span style="font-weight: 600; color: var(--color-text)">{{
+                    record.contractNumber
+                  }}</span>
                 </template>
                 <template v-else-if="column.key === 'contractTypeName'">
                   <span>{{ record.contractTypeName }}</span>
@@ -546,13 +676,15 @@
                 <template v-else-if="column.key === 'duration'">
                   <span>
                     {{ dayjs(record.startDate).format('DD/MM/YYYY') }}
-                    - 
-                    {{ record.endDate ? dayjs(record.endDate).format('DD/MM/YYYY') : 'Không thời hạn' }}
+                    -
+                    {{
+                      record.endDate ? dayjs(record.endDate).format('DD/MM/YYYY') : 'Không thời hạn'
+                    }}
                   </span>
                 </template>
                 <template v-else-if="column.key === 'basicSalary'">
-                  <span style="font-weight: 600;">{{ formatCurrency(record.basicSalary) }}</span>
-                  <div style="font-size: 11px; color: var(--color-text-muted);">
+                  <span style="font-weight: 600">{{ formatCurrency(record.basicSalary) }}</span>
+                  <div style="font-size: 11px; color: var(--color-text-muted)">
                     Hệ số: {{ record.salaryRatio }}
                   </div>
                 </template>
@@ -564,11 +696,12 @@
                 <template v-else-if="column.key === 'actions'">
                   <a-space>
                     <a-button size="small" type="text" @click="openEditContract(record)">
-                      <EditOutlined style="color: var(--color-accent-blue);" />
+                      <EditOutlined style="color: var(--color-accent-blue)" />
                     </a-button>
                     <a-popconfirm
                       title="Xác nhận xoá hợp đồng này?"
-                      ok-text="Xoá" cancel-text="Huỷ"
+                      ok-text="Xoá"
+                      cancel-text="Huỷ"
                       ok-type="danger"
                       @confirm="deleteContract(record.id)"
                     >
@@ -590,7 +723,8 @@
       v-model:open="contractFormModalOpen"
       :title="editingContractId ? 'Chỉnh sửa hợp đồng' : 'Ký hợp đồng mới'"
       :confirm-loading="savingContract"
-      ok-text="Lưu" cancel-text="Huỷ"
+      ok-text="Lưu"
+      cancel-text="Huỷ"
       width="580px"
       @ok="saveContract"
       destroy-on-close
@@ -599,7 +733,10 @@
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item name="contractNumber" label="Số hợp đồng">
-              <a-input v-model:value="contractForm.contractNumber" placeholder="Ví dụ: HDLD/2026/0001" />
+              <a-input
+                v-model:value="contractForm.contractNumber"
+                placeholder="Ví dụ: HDLD/2026/0001"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="12">
@@ -607,14 +744,10 @@
               <a-select
                 v-model:value="contractForm.contractTypeId"
                 placeholder="Chọn loại hợp đồng"
-                style="width:100%;"
+                style="width: 100%"
                 @change="onContractTypeChange"
               >
-                <a-select-option
-                  v-for="type in contractTypes"
-                  :key="type.id"
-                  :value="type.id"
-                >
+                <a-select-option v-for="type in contractTypes" :key="type.id" :value="type.id">
                   {{ type.name }}
                 </a-select-option>
               </a-select>
@@ -622,21 +755,30 @@
           </a-col>
           <a-col :span="12">
             <a-form-item name="startDate" label="Ngày bắt đầu">
-              <a-date-picker v-model:value="contractForm.startDate" format="DD/MM/YYYY" style="width:100%;" />
+              <a-date-picker
+                v-model:value="contractForm.startDate"
+                format="DD/MM/YYYY"
+                style="width: 100%"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item name="endDate" label="Ngày kết thúc">
-              <a-date-picker v-model:value="contractForm.endDate" format="DD/MM/YYYY" style="width:100%;" placeholder="Bỏ trống nếu không thời hạn" />
+              <a-date-picker
+                v-model:value="contractForm.endDate"
+                format="DD/MM/YYYY"
+                style="width: 100%"
+                placeholder="Bỏ trống nếu không thời hạn"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item name="basicSalary" label="Lương cơ bản trên HĐ (VND)">
               <a-input-number
                 v-model:value="contractForm.basicSalary"
-                :formatter="v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
-                :parser="v => v.replace(/,/g, '')"
-                style="width:100%;"
+                :formatter="(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+                :parser="(v) => v.replace(/,/g, '')"
+                style="width: 100%"
                 placeholder="10,000,000"
               />
             </a-form-item>
@@ -645,20 +787,26 @@
             <a-form-item name="salaryRatio" label="Tỷ lệ hưởng lương">
               <a-input-number
                 v-model:value="contractForm.salaryRatio"
-                :min="0.1" :max="2.0" :step="0.05"
-                style="width:100%;"
+                :min="0.1"
+                :max="2.0"
+                :step="0.05"
+                style="width: 100%"
                 placeholder="1.0"
               />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item name="signDate" label="Ngày ký">
-              <a-date-picker v-model:value="contractForm.signDate" format="DD/MM/YYYY" style="width:100%;" />
+              <a-date-picker
+                v-model:value="contractForm.signDate"
+                format="DD/MM/YYYY"
+                style="width: 100%"
+              />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item name="status" label="Trạng thái">
-              <a-select v-model:value="contractForm.status" style="width:100%;">
+              <a-select v-model:value="contractForm.status" style="width: 100%">
                 <a-select-option value="Draft">Bản nháp (Draft)</a-select-option>
                 <a-select-option value="Active">Hiệu lực (Active)</a-select-option>
                 <a-select-option value="Expired">Hết hạn (Expired)</a-select-option>
@@ -668,7 +816,11 @@
           </a-col>
         </a-row>
         <a-form-item name="notes" label="Ghi chú">
-          <a-textarea v-model:value="contractForm.notes" :rows="2" placeholder="Ghi chú thêm về hợp đồng..." />
+          <a-textarea
+            v-model:value="contractForm.notes"
+            :rows="2"
+            placeholder="Ghi chú thêm về hợp đồng..."
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -678,7 +830,8 @@
       v-model:open="accountModalOpen"
       title="Tạo tài khoản cho nhân viên"
       :confirm-loading="creatingAccount"
-      ok-text="Tạo tài khoản" cancel-text="Huỷ"
+      ok-text="Tạo tài khoản"
+      cancel-text="Huỷ"
       width="520px"
       @ok="submitCreateAccount"
       @cancel="resetAccountForm"
@@ -686,36 +839,25 @@
     >
       <a-alert
         v-if="accountTarget"
-        type="success" show-icon
-        style="margin-bottom:16px; border-radius:8px;"
+        type="success"
+        show-icon
+        style="margin-bottom: 16px; border-radius: 8px"
       >
         <template #message>
           Tạo tài khoản cho: <b>{{ accountTarget.fullName }}</b>
-          <span style="color:var(--color-text-muted);">
-            ({{ accountTarget.employeeCode }})
-          </span>
+          <span style="color: var(--color-text-muted)"> ({{ accountTarget.employeeCode }}) </span>
         </template>
       </a-alert>
 
-      <a-form
-        :model="accountForm" layout="vertical"
-        ref="accountFormRef" :rules="accountRules"
-      >
+      <a-form :model="accountForm" layout="vertical" ref="accountFormRef" :rules="accountRules">
         <a-form-item name="username" label="Tên đăng nhập">
-          <a-input
-            v-model:value="accountForm.username"
-            placeholder="vd: nguyenvana"
-            allow-clear
-          />
+          <a-input v-model:value="accountForm.username" placeholder="vd: nguyenvana" allow-clear />
         </a-form-item>
         <a-form-item name="password" label="Mật khẩu">
-          <a-input-password
-            v-model:value="accountForm.password"
-            placeholder="Tối thiểu 6 ký tự"
-          />
+          <a-input-password v-model:value="accountForm.password" placeholder="Tối thiểu 6 ký tự" />
         </a-form-item>
         <a-form-item name="role" label="Vai trò">
-          <a-select v-model:value="accountForm.role" style="width:100%;">
+          <a-select v-model:value="accountForm.role" style="width: 100%">
             <a-select-option v-for="role in assignableRoles" :key="role" :value="role">
               {{ role }} — {{ getRoleLabel(role) }}
             </a-select-option>
@@ -728,7 +870,8 @@
       v-model:open="changeRoleModalOpen"
       title="Đổi vai trò tài khoản"
       :confirm-loading="changingRole"
-      ok-text="Lưu thay đổi" cancel-text="Huỷ"
+      ok-text="Lưu thay đổi"
+      cancel-text="Huỷ"
       width="460px"
       @ok="submitChangeRole"
       @cancel="resetChangeRoleForm"
@@ -736,8 +879,9 @@
     >
       <a-alert
         v-if="changeRoleTarget"
-        type="info" show-icon
-        style="margin-bottom:16px; border-radius:8px;"
+        type="info"
+        show-icon
+        style="margin-bottom: 16px; border-radius: 8px"
       >
         <template #message>
           Đổi role cho: <b>{{ changeRoleTarget.fullName }}</b>
@@ -748,7 +892,7 @@
       </a-alert>
       <a-form layout="vertical">
         <a-form-item label="Vai trò mới">
-          <a-select v-model:value="changeRoleForm.role" style="width:100%;">
+          <a-select v-model:value="changeRoleForm.role" style="width: 100%">
             <a-select-option v-for="role in assignableRoles" :key="role" :value="role">
               {{ role }} — {{ getRoleLabel(role) }}
             </a-select-option>
@@ -762,7 +906,8 @@
       v-model:open="resetPassModalOpen"
       title="Đặt lại mật khẩu"
       :confirm-loading="resettingPass"
-      ok-text="Xác nhận" cancel-text="Huỷ"
+      ok-text="Xác nhận"
+      cancel-text="Huỷ"
       width="420px"
       @ok="submitResetPassword"
       @cancel="resetPassModalOpen = false"
@@ -770,12 +915,13 @@
     >
       <a-alert
         v-if="resetPassTarget"
-        type="warning" show-icon
-        style="margin-bottom:16px; border-radius:8px;"
+        type="warning"
+        show-icon
+        style="margin-bottom: 16px; border-radius: 8px"
       >
         <template #message>
           Đặt lại mật khẩu cho: <b>{{ resetPassTarget.fullName }}</b>
-          <div style="font-size:12px; color:var(--color-text-muted); margin-top:2px;">
+          <div style="font-size: 12px; color: var(--color-text-muted); margin-top: 2px">
             Tài khoản đang bị khóa (Nghỉ việc). Chỉ Admin mới thực hiện được thao tác này.
           </div>
         </template>
@@ -805,10 +951,18 @@ import {
   normalizeAccountRecords,
 } from '@/utils/accountManagement'
 import {
-  UserOutlined, PlusOutlined, ReloadOutlined,
-  EditOutlined, DeleteOutlined, UserAddOutlined,
-  EyeOutlined, LockOutlined, SafetyCertificateOutlined,
-  BankOutlined, HistoryOutlined, KeyOutlined,
+  UserOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UserAddOutlined,
+  EyeOutlined,
+  LockOutlined,
+  SafetyCertificateOutlined,
+  BankOutlined,
+  HistoryOutlined,
+  KeyOutlined,
 } from '@ant-design/icons-vue'
 
 const auth = useAuthStore()
@@ -824,21 +978,21 @@ async function onTabChange(key) {
 }
 
 // ─── Tab 1: Employees CRUD (giữ nguyên logic cũ) ────────────────
-const loading    = ref(false)
-const saving     = ref(false)
-const employees  = ref([])
-const total      = ref(0)
-const page       = ref(1)
-const pageSize   = ref(10)
-const search     = ref('')
+const loading = ref(false)
+const saving = ref(false)
+const employees = ref([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(10)
+const search = ref('')
 const filterStatus = ref('')
-const modalOpen  = ref(false)
-const editingId  = ref(null)
-const formRef    = ref()
+const modalOpen = ref(false)
+const editingId = ref(null)
+const formRef = ref()
 
 // ─── View modal ─────────────────────────────────────────────────
 const viewModalOpen = ref(false)
-const viewRecord    = ref(null)
+const viewRecord = ref(null)
 const detailActiveTab = ref('general')
 
 function openView(rec) {
@@ -873,7 +1027,7 @@ const contractForm = reactive({
   salaryRatio: 1.0,
   signDate: null,
   status: 'Draft',
-  notes: ''
+  notes: '',
 })
 
 const contractRules = {
@@ -883,7 +1037,7 @@ const contractRules = {
   basicSalary: [{ required: true, message: 'Vui lòng nhập lương cơ bản' }],
   salaryRatio: [{ required: true, message: 'Vui lòng nhập tỷ lệ lương' }],
   signDate: [{ required: true, message: 'Vui lòng chọn ngày ký' }],
-  status: [{ required: true, message: 'Vui lòng chọn trạng thái' }]
+  status: [{ required: true, message: 'Vui lòng chọn trạng thái' }],
 }
 
 const contractColumns = [
@@ -892,7 +1046,7 @@ const contractColumns = [
   { title: 'Thời hạn', key: 'duration', dataIndex: 'startDate' },
   { title: 'Lương cơ bản', key: 'basicSalary', dataIndex: 'basicSalary', align: 'right' },
   { title: 'Trạng thái', key: 'status', dataIndex: 'status', width: 100 },
-  { title: '', key: 'actions', width: 100, align: 'center' }
+  { title: '', key: 'actions', width: 100, align: 'center' },
 ]
 
 async function loadContracts(employeeId) {
@@ -901,8 +1055,7 @@ async function loadContracts(employeeId) {
   try {
     const res = await contractApi.getAll({ employeeId })
     const data = res.data
-    contracts.value = Array.isArray(data) ? data
-      : (data.data || data.items || data.contracts || [])
+    contracts.value = Array.isArray(data) ? data : data.data || data.items || data.contracts || []
   } catch (e) {
     message.error('Không tải được danh sách hợp đồng')
   } finally {
@@ -914,15 +1067,16 @@ async function loadContractTypes() {
   try {
     const res = await contractApi.getTypes()
     const data = res.data
-    contractTypes.value = Array.isArray(data) ? data
-      : (data.data || data.items || data.contractTypes || [])
+    contractTypes.value = Array.isArray(data)
+      ? data
+      : data.data || data.items || data.contractTypes || []
   } catch (e) {
     message.error('Không tải được danh sách loại hợp đồng')
   }
 }
 
 function onContractTypeChange(typeId) {
-  const selectedType = contractTypes.value.find(t => t.id === typeId)
+  const selectedType = contractTypes.value.find((t) => t.id === typeId)
   if (selectedType) {
     contractForm.salaryRatio = selectedType.defaultSalaryRatio || 1.0
   }
@@ -939,7 +1093,7 @@ function openCreateContract() {
     salaryRatio: 1.0,
     signDate: dayjs(),
     status: 'Draft',
-    notes: ''
+    notes: '',
   })
   contractFormModalOpen.value = true
 }
@@ -955,7 +1109,7 @@ function openEditContract(record) {
     salaryRatio: record.salaryRatio || 1.0,
     signDate: record.signDate ? dayjs(record.signDate) : null,
     status: record.status || 'Draft',
-    notes: record.notes || ''
+    notes: record.notes || '',
   })
   contractFormModalOpen.value = true
 }
@@ -972,7 +1126,7 @@ async function saveContract() {
     employeeId: viewRecord.value.id,
     startDate: contractForm.startDate ? contractForm.startDate.toISOString() : null,
     endDate: contractForm.endDate ? contractForm.endDate.toISOString() : null,
-    signDate: contractForm.signDate ? contractForm.signDate.toISOString() : null
+    signDate: contractForm.signDate ? contractForm.signDate.toISOString() : null,
   }
   try {
     if (editingContractId.value) {
@@ -1005,25 +1159,34 @@ async function deleteContract(id) {
 
 function getContractStatusColor(status) {
   switch (status) {
-    case 'Active': return 'success'
-    case 'Expired': return 'warning'
-    case 'Terminated': return 'error'
-    default: return 'default'
+    case 'Active':
+      return 'success'
+    case 'Expired':
+      return 'warning'
+    case 'Terminated':
+      return 'error'
+    default:
+      return 'default'
   }
 }
 
 function getContractStatusText(status) {
   switch (status) {
-    case 'Active': return 'Hiệu lực'
-    case 'Expired': return 'Hết hạn'
-    case 'Terminated': return 'Chấm dứt'
-    case 'Draft': return 'Bản nháp'
-    default: return status
+    case 'Active':
+      return 'Hiệu lực'
+    case 'Expired':
+      return 'Hết hạn'
+    case 'Terminated':
+      return 'Chấm dứt'
+    case 'Draft':
+      return 'Bản nháp'
+    default:
+      return status
   }
 }
 
 // ─── Departments ────────────────────────────────────────────────
-const departments = ref([])   // flat list { id, name }
+const departments = ref([]) // flat list { id, name }
 
 function flattenDepts(nodes, result = []) {
   for (const n of nodes) {
@@ -1037,17 +1200,19 @@ async function loadDepartments() {
   try {
     const res = await departmentApi.getTree()
     const raw = res.data
-    const nodes = Array.isArray(raw) ? raw : (raw.data || raw.departments || [])
+    const nodes = Array.isArray(raw) ? raw : raw.data || raw.departments || []
     departments.value = flattenDepts(nodes)
-  } catch { /* non-critical */ }
+  } catch {
+    /* non-critical */
+  }
 }
 
 const departmentOptions = computed(() =>
-  departments.value.map(d => ({ value: d.id, label: d.name }))
+  departments.value.map((d) => ({ value: d.id, label: d.name })),
 )
 
 const departmentMap = computed(() =>
-  Object.fromEntries(departments.value.map(d => [d.id, d.name]))
+  Object.fromEntries(departments.value.map((d) => [d.id, d.name])),
 )
 
 function filterDept(input, option) {
@@ -1071,41 +1236,43 @@ const form = reactive({
   dependentsCount: 0,
   bankName: '',
   bankAccountNumber: '',
-  bankBranch: ''
+  bankBranch: '',
 })
 
 const rules = {
   employeeCode: [{ required: true, message: 'Vui lòng nhập mã nhân viên' }],
-  fullName: [{ required:true, message:'Họ tên không được trống' }],
-  email:    [{ required:true, type:'email', message:'Email không hợp lệ' }],
-  departmentId: [{
-    validator: (_, val) => {
-      if (!val) return Promise.resolve()  // optional field
-      if (departments.value.find(d => d.id === val)) return Promise.resolve()
-      return Promise.reject('Phòng ban không hợp lệ')
+  fullName: [{ required: true, message: 'Họ tên không được trống' }],
+  email: [{ required: true, type: 'email', message: 'Email không hợp lệ' }],
+  departmentId: [
+    {
+      validator: (_, val) => {
+        if (!val) return Promise.resolve() // optional field
+        if (departments.value.find((d) => d.id === val)) return Promise.resolve()
+        return Promise.reject('Phòng ban không hợp lệ')
+      },
+      trigger: 'change',
     },
-    trigger: 'change',
-  }],
+  ],
 }
 
 const columns = [
-  { title:'Nhân viên',   key:'fullName',       dataIndex:'fullName',      sorter:true },
-  { title:'Phòng ban',   key:'departmentName', dataIndex:'departmentName', ellipsis:true },
-  { title:'Chức vụ',     key:'position',       dataIndex:'position',      ellipsis:true },
-  { title:'Lương CB',    key:'salary',         dataIndex:'baseSalary',    width:140 },
-  { title:'Trạng thái',  key:'status',         dataIndex:'status',      width:130 },
-  { title:'',            key:'actions',        width:120, align:'center' },
+  { title: 'Nhân viên', key: 'fullName', dataIndex: 'fullName', sorter: true },
+  { title: 'Phòng ban', key: 'departmentName', dataIndex: 'departmentName', ellipsis: true },
+  { title: 'Chức vụ', key: 'position', dataIndex: 'position', ellipsis: true },
+  { title: 'Lương CB', key: 'salary', dataIndex: 'baseSalary', width: 140 },
+  { title: 'Trạng thái', key: 'status', dataIndex: 'status', width: 130 },
+  { title: '', key: 'actions', width: 120, align: 'center' },
 ]
 
 // ─── Tab 2: Account management ──────────────────────────────────
-const accountLoading   = ref(false)
-const noAccountList    = ref([])   // AccountDto[]
+const accountLoading = ref(false)
+const noAccountList = ref([]) // AccountDto[]
 const existingAccountLoading = ref(false)
 const existingAccounts = ref([])
 const accountModalOpen = ref(false)
-const creatingAccount  = ref(false)
-const accountFormRef   = ref()
-const accountTarget    = ref(null) // { employeeId, fullName, employeeCode, ... }
+const creatingAccount = ref(false)
+const accountFormRef = ref()
+const accountTarget = ref(null) // { employeeId, fullName, employeeCode, ... }
 const changeRoleModalOpen = ref(false)
 const changingRole = ref(false)
 const changeRoleTarget = ref(null)
@@ -1127,43 +1294,41 @@ const accountRules = {
     { required: true, message: 'Mật khẩu không được trống' },
     { min: 6, message: 'Mật khẩu tối thiểu 6 ký tự' },
   ],
-  role: [
-    { required: true, message: 'Vui lòng chọn vai trò' },
-  ],
+  role: [{ required: true, message: 'Vui lòng chọn vai trò' }],
 }
 
 const accountColumns = [
-  { title:'Nhân viên',  key:'fullName',       dataIndex:'fullName' },
-  { title:'Mã NV',      key:'employeeCode',   dataIndex:'employeeCode', width:120 },
-  { title:'Phòng ban',  key:'departmentName', dataIndex:'departmentName', ellipsis:true },
-  { title:'',           key:'actions',        width:160, align:'center' },
+  { title: 'Nhân viên', key: 'fullName', dataIndex: 'fullName' },
+  { title: 'Mã NV', key: 'employeeCode', dataIndex: 'employeeCode', width: 120 },
+  { title: 'Phòng ban', key: 'departmentName', dataIndex: 'departmentName', ellipsis: true },
+  { title: '', key: 'actions', width: 160, align: 'center' },
 ]
 
 const existingAccountColumns = [
-  { title:'Nhân viên',    key:'fullName',      dataIndex:'fullName' },
-  { title:'Username',     key:'username',      dataIndex:'username', width:160 },
-  { title:'Mã NV',        key:'employeeCode',  dataIndex:'employeeCode', width:120 },
-  { title:'Vai trò',      key:'role',          dataIndex:'role', width:130 },
-  { title:'Trạng thái',   key:'accountStatus', dataIndex:'accountStatus', width:180 },
-  { title:'',             key:'actions',       width:220, align:'center' },
+  { title: 'Nhân viên', key: 'fullName', dataIndex: 'fullName' },
+  { title: 'Username', key: 'username', dataIndex: 'username', width: 160 },
+  { title: 'Mã NV', key: 'employeeCode', dataIndex: 'employeeCode', width: 120 },
+  { title: 'Vai trò', key: 'role', dataIndex: 'role', width: 130 },
+  { title: 'Trạng thái', key: 'accountStatus', dataIndex: 'accountStatus', width: 180 },
+  { title: '', key: 'actions', width: 220, align: 'center' },
 ]
 
 const lockedAccountColumns = [
-  { title:'Nhân viên',   key:'fullName',       dataIndex:'fullName' },
-  { title:'Mã NV',       key:'employeeCode',   dataIndex:'employeeCode', width:120 },
-  { title:'Phòng ban',   key:'departmentName', dataIndex:'departmentName', ellipsis:true },
-  { title:'TK đăng nhập', key:'accountStatus',  width:140 },
-  { title:'',            key:'actions',        width:160, align:'center' },
+  { title: 'Nhân viên', key: 'fullName', dataIndex: 'fullName' },
+  { title: 'Mã NV', key: 'employeeCode', dataIndex: 'employeeCode', width: 120 },
+  { title: 'Phòng ban', key: 'departmentName', dataIndex: 'departmentName', ellipsis: true },
+  { title: 'TK đăng nhập', key: 'accountStatus', width: 140 },
+  { title: '', key: 'actions', width: 160, align: 'center' },
 ]
 
 // ─── Helpers ─────────────────────────────────────────────────────
-const colors = ['#00b14f','#00b4d8','#7c5cfc','#ffb020','#ff4757','#1a2332']
-const getColor = name => colors[(name||'').charCodeAt(0) % colors.length]
-const formatCurrency = v => v ? new Intl.NumberFormat('vi-VN').format(v) + ' ₫' : '—'
+const colors = ['#00b14f', '#00b4d8', '#7c5cfc', '#ffb020', '#ff4757', '#1a2332']
+const getColor = (name) => colors[(name || '').charCodeAt(0) % colors.length]
+const formatCurrency = (v) => (v ? new Intl.NumberFormat('vi-VN').format(v) + ' ₫' : '—')
 const assignableRoles = computed(() => getAssignableRoles(auth.userRole))
 
 // Set lookup để check "Chưa có TK" nhanh O(1)
-const noAccountIdSet = computed(() => new Set(noAccountList.value.map(x => x.employeeId)))
+const noAccountIdSet = computed(() => new Set(noAccountList.value.map((x) => x.employeeId)))
 function isWithoutAccount(empId) {
   return noAccountIdSet.value.has(empId)
 }
@@ -1185,17 +1350,19 @@ async function loadEmployees() {
   loading.value = true
   try {
     const res = await employeeApi.getAll({
-      page: page.value, pageSize: pageSize.value,
+      page: page.value,
+      pageSize: pageSize.value,
       search: search.value || undefined,
       status: filterStatus.value || undefined,
     })
     const data = res.data
-    employees.value = Array.isArray(data) ? data
-      : (data.data || data.items || data.employees || [])
+    employees.value = Array.isArray(data) ? data : data.data || data.items || data.employees || []
     total.value = data.total || data.totalCount || employees.value.length
   } catch (e) {
     message.error('Không tải được danh sách nhân viên')
-  } finally { loading.value = false }
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadNoAccountList() {
@@ -1203,11 +1370,12 @@ async function loadNoAccountList() {
   try {
     const res = await authApi.getEmployeesWithoutAccount()
     const data = res.data
-    noAccountList.value = Array.isArray(data) ? data
-      : (data.data || [])
+    noAccountList.value = Array.isArray(data) ? data : data.data || []
   } catch (e) {
     message.error('Không tải được danh sách nhân viên chưa có tài khoản')
-  } finally { accountLoading.value = false }
+  } finally {
+    accountLoading.value = false
+  }
 }
 
 async function loadExistingAccounts() {
@@ -1215,11 +1383,13 @@ async function loadExistingAccounts() {
   try {
     const res = await authApi.listAccounts()
     const data = res.data
-    const items = Array.isArray(data) ? data : (data.data || data.items || data.accounts || [])
+    const items = Array.isArray(data) ? data : data.data || data.items || data.accounts || []
     existingAccounts.value = normalizeAccountRecords(items, employees.value)
   } catch (e) {
     message.error(e.response?.data?.message || 'Không tải được danh sách tài khoản')
-  } finally { existingAccountLoading.value = false }
+  } finally {
+    existingAccountLoading.value = false
+  }
 }
 
 async function loadAll() {
@@ -1256,7 +1426,7 @@ function openCreate() {
     dependentsCount: 0,
     bankName: '',
     bankAccountNumber: '',
-    bankBranch: ''
+    bankBranch: '',
   })
   modalOpen.value = true
 }
@@ -1265,36 +1435,44 @@ function openEdit(rec) {
   Object.assign(form, {
     employeeCode: rec.employeeCode || '',
     fullName: rec.fullName || '',
-    email:    rec.email || '',
-    phone:    rec.phone || '',
+    email: rec.email || '',
+    phone: rec.phone || '',
     departmentId: rec.departmentId || null,
     position: rec.position || '',
     baseSalary: rec.baseSalary || rec.salary || null,
     hireDate: rec.hireDate ? dayjs(rec.hireDate) : null,
-    address:  rec.address || '',
-    status:   rec.status || 'Active',
+    address: rec.address || '',
+    status: rec.status || 'Active',
     contractType: rec.contractType || 'Full-time',
     identityNumber: rec.identityNumber || '',
     taxCode: rec.taxCode || '',
     dependentsCount: rec.dependentsCount || 0,
     bankName: rec.bankName || '',
     bankAccountNumber: rec.bankAccountNumber || '',
-    bankBranch: rec.bankBranch || ''
+    bankBranch: rec.bankBranch || '',
   })
   modalOpen.value = true
 }
-function resetForm() { modalOpen.value = false; editingId.value = null }
+function resetForm() {
+  modalOpen.value = false
+  editingId.value = null
+}
 
 async function saveEmployee() {
-  try { await formRef.value.validate() } catch { return }
+  try {
+    await formRef.value.validate()
+  } catch {
+    return
+  }
 
   // Cảnh báo: đổi sang Inactive sẽ khóa TK đăng nhập
-  const wasActive = employees.value.find(e => e.id === editingId.value)?.status === 'Active'
+  const wasActive = employees.value.find((e) => e.id === editingId.value)?.status === 'Active'
   if (editingId.value && wasActive && form.status === 'Inactive') {
-    const confirmed = await new Promise(resolve => {
+    const confirmed = await new Promise((resolve) => {
       Modal.confirm({
         title: 'Xác nhận khóa tài khoản',
-        content: 'Chuyển sang “Nghỉ việc” sẽ khóa tài khoản đăng nhập của nhân viên này ngay lập tức. Họ sẽ không thể đăng nhập vào hệ thống. Bản ghi được giữ nguyên để lưu lịch sử. Tiếp tục?',
+        content:
+          'Chuyển sang “Nghỉ việc” sẽ khóa tài khoản đăng nhập của nhân viên này ngay lập tức. Họ sẽ không thể đăng nhập vào hệ thống. Bản ghi được giữ nguyên để lưu lịch sử. Tiếp tục?',
         okText: 'Khóa tài khoản',
         okType: 'danger',
         cancelText: 'Huỷ',
@@ -1329,7 +1507,9 @@ async function saveEmployee() {
     }
   } catch (e) {
     message.error(e.response?.data?.message || 'Lưu thất bại')
-  } finally { saving.value = false }
+  } finally {
+    saving.value = false
+  }
 }
 
 async function deleteEmployee(id) {
@@ -1337,13 +1517,19 @@ async function deleteEmployee(id) {
     await employeeApi.remove(id)
     message.success('Đã xoá nhân viên')
     loadEmployees()
-  } catch { message.error('Xoá thất bại') }
+  } catch {
+    message.error('Xoá thất bại')
+  }
 }
 
 // ─── Account creation ────────────────────────────────────────────
 function openCreateAccount(rec) {
   accountTarget.value = rec
-  Object.assign(accountForm, { username: '', password: '', role: assignableRoles.value[0] || 'Employee' })
+  Object.assign(accountForm, {
+    username: '',
+    password: '',
+    role: assignableRoles.value[0] || 'Employee',
+  })
   accountModalOpen.value = true
 }
 function resetAccountForm() {
@@ -1351,7 +1537,11 @@ function resetAccountForm() {
   accountTarget.value = null
 }
 async function submitCreateAccount() {
-  try { await accountFormRef.value.validate() } catch { return }
+  try {
+    await accountFormRef.value.validate()
+  } catch {
+    return
+  }
   if (!accountTarget.value) return
   creatingAccount.value = true
   try {
@@ -1369,7 +1559,9 @@ async function submitCreateAccount() {
     loadEmployees()
   } catch (e) {
     message.error(e.response?.data?.message || 'Tạo tài khoản thất bại')
-  } finally { creatingAccount.value = false }
+  } finally {
+    creatingAccount.value = false
+  }
 }
 
 function openChangeRole(rec) {
@@ -1403,13 +1595,15 @@ async function submitChangeRole() {
     await loadExistingAccounts()
   } catch (e) {
     message.error(e.response?.data?.message || 'Đổi role thất bại')
-  } finally { changingRole.value = false }
+  } finally {
+    changingRole.value = false
+  }
 }
 
 // ─── Reset password (chờ backend HR thêm endpoint) ─────────────
 const resetPassTarget = ref(null)
-const resettingPass    = ref(false)
-const newPassword      = ref('')
+const resettingPass = ref(false)
+const newPassword = ref('')
 const resetPassModalOpen = ref(false)
 
 function openResetPassword(rec) {
@@ -1432,7 +1626,9 @@ async function submitResetPassword() {
     resetPassModalOpen.value = false
   } catch (e) {
     message.error(e.response?.data?.message || 'Đặt lại mật khẩu thất bại')
-  } finally { resettingPass.value = false }
+  } finally {
+    resettingPass.value = false
+  }
 }
 
 // ─── Init ───────────────────────────────────────────────────────
@@ -1447,8 +1643,24 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; }
-.dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; vertical-align:middle; }
-.dot.online  { background:var(--color-primary); }
-.dot.offline { background:var(--color-text-muted); }
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.dot.online {
+  background: var(--color-primary);
+}
+.dot.offline {
+  background: var(--color-text-muted);
+}
 </style>

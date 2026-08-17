@@ -1,11 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import {
-  getAssignableRoles,
-  getRoleLabel,
-  normalizeAccountRecords,
-} from './accountManagement.js'
+import { getAssignableRoles, getRoleLabel, normalizeAccountRecords } from './accountManagement.js'
 
 test('HR khong duoc gan role Admin', () => {
   assert.deepEqual(getAssignableRoles('HR'), ['Employee', 'Manager', 'HR'])
@@ -17,11 +13,15 @@ test('Admin duoc gan day du role', () => {
 
 test('normalizeAccountRecords ghep account voi employee va khoa theo Inactive', () => {
   const rows = normalizeAccountRecords(
+    [{ employeeId: 7, username: 'an.nguyen', role: 'Manager', status: 'Active' }],
     [
-      { employeeId: 7, username: 'an.nguyen', role: 'Manager', status: 'Active' },
-    ],
-    [
-      { id: 7, employeeCode: 'E007', fullName: 'Nguyen Van An', departmentName: 'IT', status: 'Inactive' },
+      {
+        id: 7,
+        employeeCode: 'E007',
+        fullName: 'Nguyen Van An',
+        departmentName: 'IT',
+        status: 'Inactive',
+      },
     ],
   )
 
