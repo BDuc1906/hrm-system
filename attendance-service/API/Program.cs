@@ -15,6 +15,8 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins(
+                "http://localhost",
+                "http://localhost:80",
                 "http://localhost:5173",
                 "http://localhost:5174",
                 "http://localhost:3000",
@@ -60,7 +62,7 @@ builder.Services.AddHttpClient<IHrServiceClient, HrServiceClient>(client =>
 });
 
 // Add AutoMapper
-builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddAutoMapper(cfg => { }, typeof(Program));
 
 // Add Swagger/OpenAPIS
 builder.Services.AddEndpointsApiExplorer();
@@ -68,6 +70,26 @@ builder.Services.AddSwaggerGen();
 
 
 var app = builder.Build();
+
+// --- TỰ ĐỘNG TẠO/CẬP NHẬT DATABASE (AttendanceDB) KHI KHỞI ĐỘNG ---
+// Trước đây không có bước này nên database "AttendanceDB" không bao giờ được
+// tạo trên SQL Server, khiến mọi query đều lỗi "Cannot open database
+// AttendanceDB... Login failed". Thêm MigrateAsync() giống HR Core Service
+// để tự tạo DB + áp dụng migration lúc container khởi động.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var startupLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        await db.Database.MigrateAsync();
+        startupLogger.LogInformation("✅ AttendanceDB migration hoàn tất.");
+    }
+    catch (Exception ex)
+    {
+        startupLogger.LogError(ex, "❌ Lỗi khi migrate AttendanceDB. Service có thể không hoạt động đúng.");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -26,6 +26,8 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins(
+                "http://localhost",            // Frontend production (nginx, cổng 80)
+                "http://localhost:80",          // Frontend production (tường minh cổng 80)
                 "http://localhost:5173",       // Vite dev server
                 "http://localhost:5174",       // Vite fallback port
                 "http://localhost:3000",       // Vite proxy port

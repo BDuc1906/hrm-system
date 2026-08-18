@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace payroll_service.Migrations
 {
+    [Migration("202606110350_AddHrFields")]
     public partial class AddHrFields : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

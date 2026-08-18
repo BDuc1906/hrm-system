@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace payroll_service.Migrations
 {
+    [Migration("20260625000000_AddContractAndTaxFields")]
     public partial class AddContractAndTaxFields : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
