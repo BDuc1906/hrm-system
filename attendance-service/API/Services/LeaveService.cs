@@ -75,10 +75,10 @@ public class LeaveService : ILeaveService
             {
                 _logger.LogWarning($"Overlapping leave request exists for employee {employee.EmployeeCode} " +
                     $"from {request.StartDate:yyyy-MM-dd} to {request.EndDate:yyyy-MM-dd}");
-                return new CreateLeaveRequestResponse 
-                { 
-                    Success = false, 
-                    Message = "Leave request overlaps with existing leave request" 
+                return new CreateLeaveRequestResponse
+                {
+                    Success = false,
+                    Message = "Leave request overlaps with existing leave request"
                 };
             }
 
@@ -110,19 +110,19 @@ public class LeaveService : ILeaveService
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "Database error while creating leave request: {ErrorMessage}", ex.Message);
-            return new CreateLeaveRequestResponse 
-            { 
-                Success = false, 
-                Message = $"Database error: {ex.InnerException?.Message ?? ex.Message}" 
+            return new CreateLeaveRequestResponse
+            {
+                Success = false,
+                Message = $"Database error: {ex.InnerException?.Message ?? ex.Message}"
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating leave request: {ErrorMessage}", ex.Message);
-            return new CreateLeaveRequestResponse 
-            { 
-                Success = false, 
-                Message = $"Error creating leave request: {ex.Message}" 
+            return new CreateLeaveRequestResponse
+            {
+                Success = false,
+                Message = $"Error creating leave request: {ex.Message}"
             };
         }
     }
@@ -303,7 +303,7 @@ public class LeaveService : ILeaveService
                 return false;
 
             if (leaveRequest.Status != "Pending")
-                return false;            leaveRequest.Status = "Rejected";
+                return false; leaveRequest.Status = "Rejected";
             leaveRequest.ApprovedBy = approverId;
 
             _context.LeaveRequests.Update(leaveRequest);

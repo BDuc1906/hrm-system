@@ -36,19 +36,19 @@ namespace API.Controllers
                 var employees = await _hrServiceClient.GetEmployeesAsync();
 
                 _logger.LogInformation($"Test: Successfully retrieved {employees.Count} employees");
-                return Ok(new 
-                { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     count = employees.Count,
-                    data = employees 
+                    data = employees
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Test: Error - {ex.GetType().Name}: {ex.Message}");
-                return StatusCode(500, new 
-                { 
-                    success = false, 
+                return StatusCode(500, new
+                {
+                    success = false,
                     error = ex.Message,
                     type = ex.GetType().Name
                 });

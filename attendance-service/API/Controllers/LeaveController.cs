@@ -96,7 +96,7 @@ public class LeaveController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving pending leave requests");
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "Error retrieving pending leave requests" });
         }
     }
@@ -131,7 +131,7 @@ public class LeaveController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving leave requests");
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "Error retrieving leave requests" });
         }
     }
@@ -173,7 +173,7 @@ public class LeaveController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error approving leave request");
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "Error approving leave request" });
         }
     }
@@ -215,7 +215,7 @@ public class LeaveController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error rejecting leave request");
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "Error rejecting leave request" });
         }
     }

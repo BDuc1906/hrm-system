@@ -16,5 +16,5 @@ namespace payroll_service.Services
         Task<ApprovePayrollResult> ApproveAndSendPayslipAsync(ApprovePayrollRequest request);
     }
 
-   
+
 }

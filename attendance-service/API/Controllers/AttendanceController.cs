@@ -138,7 +138,7 @@ public class AttendanceController : ControllerBase
         if (!result)
         {
             _logger.LogError($"Failed to close month {request.Month}/{request.Year}");
-            return StatusCode(StatusCodes.Status500InternalServerError, 
+            return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "Failed to close the month" });
         }
 

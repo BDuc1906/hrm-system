@@ -60,7 +60,7 @@ namespace HRCoreService.Services
                                     if (employee != null && employee.Status == "Active")
                                     {
                                         employee.Status = "Inactive";
-                                        _logger.LogWarning("Tài khoản nhân viên {Code} ({Name}) bị vô hiệu hóa do hết hạn hợp đồng.", 
+                                        _logger.LogWarning("Tài khoản nhân viên {Code} ({Name}) bị vô hiệu hóa do hết hạn hợp đồng.",
                                             employee.EmployeeCode, employee.FullName);
                                     }
                                 }

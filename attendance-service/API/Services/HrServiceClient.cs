@@ -109,7 +109,7 @@ namespace API.Services
             try
             {
                 var token = await GetTokenAsync();
-                _httpClient.DefaultRequestHeaders.Authorization = 
+                _httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                 _logger.LogDebug("Authorization header set with Bearer token");
             }
@@ -152,8 +152,8 @@ namespace API.Services
                 _logger.LogInformation($"✅ [HR Service] Raw response received ({rawJson.Length} bytes)");
 
                 // Deserialize with custom converter
-                var options = new JsonSerializerOptions 
-                { 
+                var options = new JsonSerializerOptions
+                {
                     PropertyNameCaseInsensitive = true,
                     Converters = { new API.Converters.EmployeeDtoJsonConverter() }
                 };
@@ -210,8 +210,8 @@ namespace API.Services
                 _logger.LogInformation($"Raw HR response for employee {id}: {rawJson}");
 
                 // Deserialize with custom converter
-                var options = new JsonSerializerOptions 
-                { 
+                var options = new JsonSerializerOptions
+                {
                     PropertyNameCaseInsensitive = true,
                     Converters = { new API.Converters.EmployeeDtoJsonConverter() }
                 };
@@ -260,8 +260,8 @@ namespace API.Services
                 _logger.LogInformation($"Raw HR response for create: {rawJson}");
 
                 // HR Service returns wrapped response: { statusCode, message, data: {...} }
-                var options = new JsonSerializerOptions 
-                { 
+                var options = new JsonSerializerOptions
+                {
                     PropertyNameCaseInsensitive = true,
                     Converters = { new API.Converters.EmployeeDtoJsonConverter() }
                 };

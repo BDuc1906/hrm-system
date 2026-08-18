@@ -43,11 +43,11 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description  = "Chỉ cần paste token vào đây, Swagger tự thêm 'Bearer' ở đầu.",
-        Name         = "Authorization",
-        In           = ParameterLocation.Header,
-        Type         = SecuritySchemeType.Http,   // Http scheme → tự thêm "Bearer "
-        Scheme       = "bearer",                  // lowercase bắt buộc
+        Description = "Chỉ cần paste token vào đây, Swagger tự thêm 'Bearer' ở đầu.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,   // Http scheme → tự thêm "Bearer "
+        Scheme = "bearer",                  // lowercase bắt buộc
         BearerFormat = "JWT"
     });
 
@@ -74,23 +74,23 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 // --- 2. CẤU HÌNH ĐỌC JWT TỪ APPSETTINGS ---
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey   = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
+var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
 
 builder.Services.AddAuthentication(option =>
 {
     option.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    option.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
+    option.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(option =>
 {
     option.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer           = true,
-        ValidateAudience         = true,
-        ValidateLifetime         = true, // Kiểm tra thời gian hết hạn của token
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true, // Kiểm tra thời gian hết hạn của token
         ValidateIssuerSigningKey = true, // Soi chữ ký của token
-        ValidIssuer              = jwtSettings["Issuer"],
-        ValidAudience            = jwtSettings["Audience"],
-        IssuerSigningKey         = new SymmetricSecurityKey(secretKey)
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(secretKey)
     };
 });
 
@@ -115,7 +115,7 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<HRCoreDbContext>();
-    
+
     try
     {
         // Tự động apply migration khi khởi động app (tạo DB nếu chưa có)
