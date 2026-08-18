@@ -1,0 +1,22 @@
+# Ép tất cả file text dùng LF khi lưu trong Git, bất kể OS của người checkout.
+# Tránh lệch whitespace giữa máy dev Windows (autocrlf=true) và CI chạy Linux,
+# vốn là nguyên nhân dotnet format báo lỗi trên CI nhưng không thấy gì ở local.
+* text=auto eol=lf
+
+*.cs      text eol=lf
+*.csproj  text eol=lf
+*.sln     text eol=lf
+*.slnx    text eol=lf
+*.json    text eol=lf
+*.js      text eol=lf
+*.vue     text eol=lf
+*.css     text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.md      text eol=lf
+
+# File nhị phân — không đụng vào line ending
+*.png     binary
+*.jpg     binary
+*.ico     binary
+*.dll     binary

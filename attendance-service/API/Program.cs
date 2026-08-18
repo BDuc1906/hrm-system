@@ -62,7 +62,7 @@ builder.Services.AddHttpClient<IHrServiceClient, HrServiceClient>(client =>
 // Add AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));
 
-// Add Swagger/OpenAPI
+// Add Swagger/OpenAPIS
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
