@@ -1,0 +1,266 @@
+name: (Reusable) .NET Service - Build, Test & Push
+
+# Workflow dùng chung cho attendance-service / HRCoreService / payroll-service.
+# Mục đích: tránh copy-paste 3 lần cùng một logic build/test/push, chỉ khai báo
+# khác nhau qua "inputs" ở workflow gọi (caller). Khi cần sửa logic build chung,
+# chỉ sửa 1 chỗ ở đây thay vì sửa 3 file.
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: "Tên service, dùng để đặt tên image/artifact (vd: attendance-service)"
+        required: true
+        type: string
+      project_path:
+        description: "Đường dẫn tới .csproj chính để restore/build"
+        required: true
+        type: string
+      test_project_path:
+        description: "Đường dẫn tới .csproj test. Để trống nếu chưa có project test — bước test sẽ bị SKIP thay vì chạy giả trên project chính (tránh báo xanh giả)."
+        required: false
+        type: string
+        default: ""
+      dockerfile_path:
+        description: "Đường dẫn Dockerfile"
+        required: true
+        type: string
+      context_path:
+        description: "Docker build context"
+        required: true
+        type: string
+      dotnet_version:
+        description: "Phiên bản .NET SDK"
+        required: true
+        type: string
+      image_name:
+        description: "Tên image trên ghcr.io, KHÔNG kèm owner (vd: attendance-service)"
+        required: true
+        type: string
+      trivy_scan_ref:
+        description: "Thư mục để Trivy quét filesystem/dependency"
+        required: true
+        type: string
+      enable_sonar:
+        description: "Bật SonarCloud analysis (yêu cầu vars.SONAR_ORGANIZATION + secrets.SONAR_TOKEN)"
+        required: false
+        type: boolean
+        default: false
+      enable_slack_notify:
+        description: "Bật thông báo Slack khi build xong"
+        required: false
+        type: boolean
+        default: false
+      fail_on_critical_vuln:
+        description: "Nếu true, build sẽ FAIL khi Trivy tìm thấy lỗ hổng CRITICAL trong image/code"
+        required: false
+        type: boolean
+        default: false
+
+# Hủy các lần chạy cũ hơn đang chờ/đang chạy trên cùng nhánh khi có commit mới,
+# tránh lãng phí phút CI và tránh 2 lần build push đè tag lên nhau.
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.service_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+
+      - name: Restore dependencies
+        run: dotnet restore "${{ inputs.project_path }}"
+
+      - name: Build
+        run: dotnet build "${{ inputs.project_path }}" -c Release --no-restore
+
+      - name: Run tests
+        if: ${{ inputs.test_project_path != '' }}
+        run: dotnet test "${{ inputs.test_project_path }}" -c Release --logger "trx;LogFileName=test-results.trx"
+
+      - name: Bỏ qua bước test (chưa có test project)
+        if: ${{ inputs.test_project_path == '' }}
+        run: |
+          echo "::warning::${{ inputs.service_name }} chưa có test project (.Tests.csproj)."
+          echo "::warning::Bước test bị SKIP thay vì chạy giả trên project chính, để không báo xanh nhầm."
+
+      - name: Upload test results
+        if: ${{ always() && inputs.test_project_path != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.service_name }}-test-results
+          path: '**/test-results.trx'
+          if-no-files-found: warn
+
+  lint:
+    name: Code Format & Analyzers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+
+      - name: Check code format (dotnet format)
+        run: dotnet format "${{ inputs.project_path }}" --verify-no-changes --verbosity diagnostic
+
+      - name: Build with analyzers (EnforceCodeStyleInBuild)
+        run: dotnet build "${{ inputs.project_path }}" -c Release /p:EnforceCodeStyleInBuild=true /p:TreatWarningsAsErrors=false
+
+  code-quality:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ inputs.enable_sonar }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+
+      - name: Restore dependencies
+        run: dotnet restore "${{ inputs.project_path }}"
+
+      - name: Build
+        run: dotnet build "${{ inputs.project_path }}" -c Release --no-restore
+
+      - name: Run SonarCloud analysis
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_ref: ${{ steps.vars.outputs.image_ref }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ghcr.io bắt buộc tên repository toàn chữ thường; github.repository_owner
+      # giữ nguyên hoa/thường username, nên phải tự chuyển về chữ thường.
+      - name: Chuẩn hóa tên image & tính toán biến dùng chung
+        id: vars
+        run: |
+          IMAGE_NAME_LC=$(echo "${{ github.repository_owner }}/${{ inputs.image_name }}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME_LC=$IMAGE_NAME_LC" >> "$GITHUB_ENV"
+          echo "image_ref=ghcr.io/$IMAGE_NAME_LC:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context_path }}
+          file: ${{ inputs.dockerfile_path }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/${{ env.IMAGE_NAME_LC }}:latest
+            ghcr.io/${{ env.IMAGE_NAME_LC }}:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.IMAGE_NAME_LC }}:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ env.IMAGE_NAME_LC }}:buildcache,mode=max
+
+  security:
+    name: Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: ${{ inputs.trivy_scan_ref }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          # Chính sách rõ ràng: mặc định KHÔNG chặn build (report-only) để không
+          # làm gián đoạn dev khi mới bật scan; bật fail_on_critical_vuln=true
+          # ở service nào đã sẵn sàng để build fail khi có lỗ hổng CRITICAL.
+          exit-code: ${{ inputs.fail_on_critical_vuln && '1' || '0' }}
+          severity: 'CRITICAL'
+
+      - name: Upload Trivy results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [test, lint, build, security]
+    if: ${{ always() && inputs.enable_slack_notify }}
+
+    steps:
+      - name: Send Slack notification
+        if: ${{ vars.SLACK_NOTIFICATIONS_ENABLED == 'true' }}
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          payload: |
+            {
+              "text": "Build Result: ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*${{ inputs.service_name }} Build*\nRepo: ${{ github.repository }}\nBranch: ${{ github.ref }}\nStatus: ${{ job.status }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

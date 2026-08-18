@@ -1,9 +1,5 @@
 name: Attendance Service - Security & Code Quality Checks
 
-# QUAN TRỌNG: file này phải nằm ở "<repo-root>/.github/workflows/", không phải
-# "attendance-service/.github/workflows/" — GitHub Actions chỉ đọc workflow ở
-# thư mục gốc của repo.
-
 on:
   push:
     branches: [ main, develop ]
@@ -16,165 +12,16 @@ on:
   schedule:
     # Chạy hàng ngày lúc 2h sáng UTC
     - cron: '0 2 * * *'
-  workflow_dispatch: {} # Cho phép bấm nút "Run workflow" chạy tay để test
-
-permissions:
-  contents: read
+  workflow_dispatch: {}
 
 jobs:
-  dependency-check:
-    runs-on: ubuntu-latest
-    name: Dependency Check
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run dependency check
-        uses: dependency-check/Dependency-Check_Action@main
-        with:
-          project: 'attendance-service'
-          path: 'attendance-service'
-          format: 'SARIF'
-          args: >
-            --enableExperimental
-
-      - name: Upload dependency check results
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: '${{ github.workspace }}/reports/dependency-check-report.sarif'
-
-  container-scan:
-    runs-on: ubuntu-latest
-    name: Container Image Scan
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Build Docker image for scanning
-        run: docker build -t attendance-service:scan -f attendance-service/API/Dockerfile attendance-service
-
-      - name: Scan with Grype
-        uses: anchore/scan-action@v6
-        id: grype
-        with:
-          image: attendance-service:scan
-          fail-build: true
-          severity-cutoff: medium
-
-      - name: Upload Grype results
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: ${{ steps.grype.outputs.sarif }}
-
-  secret-scan:
-    runs-on: ubuntu-latest
-    name: Secret Scanning
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: TruffleHog Secret Scanning
-        uses: trufflesecurity/trufflehog@v3.90.8
-        with:
-          path: ./attendance-service
-          # Không set base/head: để TruffleHog tự quét toàn bộ lịch sử.
-          # Nếu set base/head mà 2 giá trị trùng nhau (hay gặp khi chạy tay qua
-          # workflow_dispatch, hoặc repo/nhánh chỉ có 1 commit), action sẽ báo lỗi
-          # "BASE and HEAD commits are the same" và dừng ngay, không quét được gì.
-          extra_args: --debug --only-verified
-
-  dotnet-format:
-    runs-on: ubuntu-latest
-    name: Code Format Check
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Check code format
-        run: dotnet format attendance-service/API/API.csproj --verify-no-changes --verbosity diagnostic
-
-  csharp-lint:
-    runs-on: ubuntu-latest
-    name: C# Linting
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Build with analyzers (EnforceCodeStyleInBuild)
-        run: dotnet build attendance-service/API/API.csproj -c Release /p:EnforceCodeStyleInBuild=true /p:TreatWarningsAsErrors=false
-
-  sast:
-    runs-on: ubuntu-latest
-    name: Static Application Security Testing
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Run Microsoft Security DevOps
-        uses: microsoft/security-devops-action@v1
-        id: msdo
-        with:
-          categories: 'code,secrets'
-
-      - name: Upload results to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: '${{ steps.msdo.outputs.sarifFile }}'
-
-  license-check:
-    runs-on: ubuntu-latest
-    name: License Compliance Check
-    permissions:
-      contents: read
-    # Job này cần tài khoản FOSSA + secret FOSSA_API_KEY. Nếu chưa dùng FOSSA, xóa job này.
-    if: ${{ vars.FOSSA_ENABLED == 'true' }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check licenses
-        uses: fossas/fossa-action@v1.4.0
-        with:
-          api-key: ${{ secrets.FOSSA_API_KEY }}
+  security:
+    uses: ./.github/workflows/_reusable-dotnet-security.yml
+    with:
+      service_name: attendance-service
+      service_path: attendance-service
+      dockerfile_path: attendance-service/API/Dockerfile
+      docker_context_path: attendance-service
+      dotnet_version: '10.0.x'
+      project_path: attendance-service/API/API.csproj
+    secrets: inherit

@@ -1,0 +1,26 @@
+name: Payroll Service - Security & Code Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'payroll-service/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'payroll-service/**'
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  security:
+    uses: ./.github/workflows/_reusable-dotnet-security.yml
+    with:
+      service_name: payroll-service
+      service_path: payroll-service
+      dockerfile_path: payroll-service/Dockerfile
+      docker_context_path: payroll-service
+      dotnet_version: '8.0.x'
+      project_path: payroll-service/payroll-service.csproj
+    secrets: inherit

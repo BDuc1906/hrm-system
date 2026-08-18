@@ -1,20 +1,63 @@
 name: Deploy to VPS
 
+# Trước đây workflow này chạy trên MỌI push lên main, kể cả khi các workflow
+# build/test/push image ở trên vẫn đang chạy hoặc bị fail — nghĩa là có thể
+# deploy nhầm code chưa build xong hoặc chưa qua test. Giờ đổi sang chờ các
+# workflow build của từng service chạy XONG và THÀNH CÔNG trên "main" mới deploy.
+#
+# Ngoài ra: bản cũ "git pull + docker compose up -d --build" nghĩa là VPS tự
+# build lại toàn bộ image lần nữa — vừa chậm, vừa build ra image KHÁC với image
+# đã build/scan ở bước CI (mất hết ý nghĩa của security scan/test ở CI). Bản
+# mới chỉ "pull" image đã được build & scan sẵn trên ghcr.io theo đúng SHA vừa
+# build, đảm bảo cái chạy production == cái đã test.
+#
+# YÊU CẦU trước khi bật workflow này:
+#   1. Có VPS thật, đã cài Docker + docker compose plugin (v2).
+#   2. Tạo 3 secrets ở Settings > Secrets and variables > Actions:
+#        VPS_HOST, VPS_USER, VPS_SSH_KEY (và VPS_PORT nếu SSH không dùng cổng 22).
+#   3. Trên VPS, tạo sẵn thư mục project với một docker-compose.prod.yml
+#      dùng "image: ghcr.io/<owner>/<service>:${TAG}" (KHÔNG dùng "build:"),
+#      để bước dưới chỉ cần "pull" chứ không build lại.
+#   4. Xóa dòng "if: false" bên dưới để bật thật.
+
 on:
-  push:
-    branches:
-      - main # Thay đổi nhánh này nếu cần
+  workflow_run:
+    workflows:
+      - "Attendance Service - Build & Deploy Docker Image"
+      - "HRCoreService - Build & Test"
+      - "Payroll Service - Build & Test"
+      - "Frontend - Build & Check"
+    branches: [ main ]
+    types: [ completed ]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag image sẽ deploy (mặc định: sha mới nhất trên main)"
+        required: false
+        default: ""
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false # không hủy deploy đang chạy dở, tránh deploy nửa vời
 
 jobs:
   deploy:
     # Tạm tắt vì chưa có VPS thật + chưa cấu hình secrets VPS_HOST/VPS_USER/VPS_SSH_KEY.
     # Khi có VPS, xóa dòng "if: false" bên dưới để bật lại.
-    if: false
+    if: false && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production # cho phép gắn required reviewers / secrets riêng cho môi trường production trên GitHub
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Xác định image tag sẽ deploy
+        id: tag
+        run: |
+          TAG="${{ inputs.image_tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="${{ github.event.workflow_run.head_sha || github.sha }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -23,18 +66,20 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # port: ${{ secrets.VPS_PORT }} # Bỏ comment nếu VPS không dùng port 22 mặc định
+          envs: TAG
           script: |
             set -e
             # Đường dẫn tới thư mục chứa project trên VPS của bạn
             cd /path/to/your/Deploy-HRM-System
 
-            # Cập nhật code mới nhất từ git
-            git pull origin main
+            export TAG="${{ steps.tag.outputs.tag }}"
 
-            # Khởi động lại các container với code mới
-            # Dùng "docker compose" (v2, có dấu cách) thay vì "docker-compose" (v1, đã ngừng phát triển).
-            # Nếu VPS của bạn chỉ có docker-compose v1, đổi lại thành "docker-compose".
-            docker compose up -d --build
+            # Đăng nhập ghcr.io để pull image (nếu repo là private)
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Chỉ pull image đã build & scan sẵn ở CI theo đúng tag, KHÔNG build lại trên VPS
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
 
             # Xóa các image cũ không còn sử dụng để giải phóng dung lượng
             docker image prune -f

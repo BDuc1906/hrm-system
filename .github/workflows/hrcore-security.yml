@@ -1,0 +1,26 @@
+name: HRCoreService - Security & Code Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'HRCoreService/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'HRCoreService/**'
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  security:
+    uses: ./.github/workflows/_reusable-dotnet-security.yml
+    with:
+      service_name: hrcore-service
+      service_path: HRCoreService
+      dockerfile_path: HRCoreService/HRCoreService/Dockerfile
+      docker_context_path: HRCoreService
+      dotnet_version: '10.0.x'
+      project_path: HRCoreService/HRCoreService/HRCoreService.csproj
+    secrets: inherit
