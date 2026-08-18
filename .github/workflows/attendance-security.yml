@@ -92,8 +92,10 @@ jobs:
         uses: trufflesecurity/trufflehog@v3.90.8
         with:
           path: ./attendance-service
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
+          # Không set base/head: để TruffleHog tự quét toàn bộ lịch sử.
+          # Nếu set base/head mà 2 giá trị trùng nhau (hay gặp khi chạy tay qua
+          # workflow_dispatch, hoặc repo/nhánh chỉ có 1 commit), action sẽ báo lỗi
+          # "BASE and HEAD commits are the same" và dừng ngay, không quét được gì.
           extra_args: --debug --only-verified
 
   dotnet-format:
