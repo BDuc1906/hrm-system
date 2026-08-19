@@ -456,11 +456,16 @@ async function reject(id) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (isManagerOrAbove.value) {
     // Admin/HR/Manager: load danh sách nhân viên + tab chờ duyệt
-    loadEmployees()
+    // FIX: trước đây loadEmployees() không được await, nên loadPending() chạy
+    // ngay khi employees.value vẫn còn rỗng → với Manager, bộ lọc theo phòng
+    // ban (myDeptEmpIds) luôn rỗng → mọi đơn bị lọc mất, hiện "No data" dù
+    // thực tế có đơn đang chờ duyệt. Giờ đợi loadEmployees() xong trước.
     activeTab.value = 'pending'
+    loadingPending.value = true // tránh chớp "No data" trong lúc chờ loadEmployees()
+    await loadEmployees()
     loadPending()
   } else {
     // Employee: chỉ thấy tab "Đơn của tôi", tự động load đơn của mình

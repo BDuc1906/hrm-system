@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.IdentityModel.Tokens.Jwt;
@@ -62,7 +62,10 @@ public class HrServiceClient : IHrServiceClient
             ServerCertificateCustomValidationCallback =
                 HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
         };
-        return new HttpClient(handler);
+        // Tránh treo vô thời hạn nếu HR Service không phản hồi (trước đây không
+        // set Timeout -> mặc định 100s, khiến việc "tính lương tất cả" bị treo
+        // rất lâu trước khi âm thầm trả về contract=null cho từng nhân viên).
+        return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(10) };
     }
 
     private async Task<HttpClient> CreateAuthorizedClientAsync()
@@ -135,9 +138,25 @@ public class HrServiceClient : IHrServiceClient
             var content = await response.Content.ReadAsStringAsync();
             return ParseEmployeeExtended(content, employeeId);
         }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex,
+                "[HR] TIMEOUT khi gọi Employee {Id} tại {Url} — HR Service không phản hồi trong 10s. " +
+                "Kiểm tra HR Service có đang chạy và có truy cập được từ payroll-service không.",
+                employeeId, BaseUrl);
+            return null;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex,
+                "[HR] KHÔNG KẾT NỐI ĐƯỢC tới HR Service ({Url}) khi lấy Employee {Id}. " +
+                "Kiểm tra HrService:BaseUrl trong appsettings.json và kết nối mạng.",
+                BaseUrl, employeeId);
+            return null;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi gọi HR extended {Id}", employeeId);
+            _logger.LogError(ex, "[HR] Lỗi không xác định khi gọi Employee {Id}", employeeId);
             return null;
         }
     }
@@ -153,7 +172,18 @@ public class HrServiceClient : IHrServiceClient
             _logger.LogInformation("Gọi HR contracts {Id}: {Url}", employeeId, url);
 
             var response = await client.GetAsync(url);
-            if (!response.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                // TRƯỚC ĐÂY: âm thầm return null, không log status/body -> không
+                // thể phân biệt được "401 do JWT sai", "404 do sai route" hay
+                // "HR trả về danh sách rỗng vì nhân viên chưa có hợp đồng".
+                var body = await response.Content.ReadAsStringAsync();
+                if (body.Length > 500) body = body.Substring(0, 500) + "...";
+                _logger.LogWarning(
+                    "[HR] Contracts trả {Status} cho nhân viên {Id} — url={Url} — body={Body}",
+                    response.StatusCode, employeeId, url, body);
+                return null;
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -167,15 +197,49 @@ public class HrServiceClient : IHrServiceClient
             else if (root.TryGetProperty("data", out var d) && d.ValueKind == JsonValueKind.Array)
                 contracts = JsonSerializer.Deserialize<List<HrContractDTO>>(d.GetRawText(), opts);
 
-            return contracts?
+            if (contracts == null || contracts.Count == 0)
+            {
+                _logger.LogWarning(
+                    "[HR] Nhân viên {Id} KHÔNG CÓ hợp đồng nào trong HR (danh sách rỗng) — " +
+                    "lương sẽ tính = 0 cho tới khi tạo Hợp đồng cho nhân viên này.",
+                    employeeId);
+                return null;
+            }
+
+            var active = contracts
                 .Where(c => c.Status?.Equals("Active", StringComparison.OrdinalIgnoreCase) == true)
                 .OrderByDescending(c => c.StartDate)
-                .FirstOrDefault()
-                ?? contracts?.OrderByDescending(c => c.StartDate).FirstOrDefault();
+                .FirstOrDefault();
+
+            if (active == null)
+            {
+                var statuses = string.Join(", ", contracts.Select(c => c.Status ?? "(null)"));
+                _logger.LogWarning(
+                    "[HR] Nhân viên {Id} có {Count} hợp đồng nhưng KHÔNG hợp đồng nào Active " +
+                    "(statuses: {Statuses}) — dùng tạm hợp đồng mới nhất, lương có thể không chính xác.",
+                    employeeId, contracts.Count, statuses);
+                active = contracts.OrderByDescending(c => c.StartDate).FirstOrDefault();
+            }
+
+            return active;
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex,
+                "[HR] TIMEOUT khi gọi Contracts cho {Id} — HR Service không phản hồi trong 10s.",
+                employeeId);
+            return null;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex,
+                "[HR] KHÔNG KẾT NỐI ĐƯỢC tới HR Service ({Url}) khi lấy Contract {Id}.",
+                BaseUrl, employeeId);
+            return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi gọi HR contract {Id}", employeeId);
+            _logger.LogError(ex, "[HR] Lỗi không xác định khi gọi Contract {Id}", employeeId);
             return null;
         }
     }
@@ -191,7 +255,11 @@ public class HrServiceClient : IHrServiceClient
             _logger.LogInformation("Gọi HR contract types: {Url}", url);
 
             var response = await client.GetAsync(url);
-            if (!response.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[HR] Contract types trả {Status} — url={Url}", response.StatusCode, url);
+                return null;
+            }
 
             var content = await response.Content.ReadAsStringAsync();
             var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -210,10 +278,13 @@ public class HrServiceClient : IHrServiceClient
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi gọi contract types");
+            _logger.LogError(ex, "[HR] Lỗi gọi contract types");
             return null;
         }
     }
+
+    // ── GetActiveContractAsync (compat wrapper cho các nơi khác gọi) ──
+    // (giữ nguyên chữ ký cũ ở IHrServiceClient.cs.cs nếu có)
 
     // ── GetPayrollDataAsync — gọi song song, tổng hợp ────────────────
     public async Task<HrPayrollDataDTO> GetPayrollDataAsync(string employeeId)
@@ -230,12 +301,14 @@ public class HrServiceClient : IHrServiceClient
             contractType = await GetContractTypeAsync(contract.ContractTypeId);
 
         _logger.LogInformation(
-            "[HR] {Id}: salary={S}, ratio={R}, taxType={T}, bhxh={B}",
+            "[HR] {Id}: salary={S}, ratio={R}, taxType={T}, bhxh={B}, hasContract={HasContract}, hasEmployee={HasEmployee}",
             employeeId,
             contract?.BasicSalary ?? 0,
             contract?.SalaryRatio ?? 1,
             contractType?.TaxType ?? "Progressive",
-            contractType?.IsSocialInsuranceSubject ?? true);
+            contractType?.IsSocialInsuranceSubject ?? true,
+            contract != null,
+            employee != null);
 
         return new HrPayrollDataDTO
         {

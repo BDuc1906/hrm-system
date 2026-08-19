@@ -22,7 +22,8 @@ namespace HRCoreService.Controllers
             "Admin",
             "HR",
             "Manager",
-            "Employee"
+            "Employee",
+            "KT"
         };
 
         private readonly IEmployeeRepository _employeeRepository;

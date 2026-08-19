@@ -3,6 +3,7 @@ const ROLE_LABELS = {
   HR: 'Nhan su',
   Manager: 'Quan ly',
   Employee: 'Nhan vien',
+  KT: 'Ke toan',
 }
 
 const ACCOUNT_STATUS_LABELS = {
@@ -38,8 +39,8 @@ function normalizeStatus(rawStatus, employeeStatus) {
 
 export function getAssignableRoles(currentUserRole) {
   return currentUserRole === 'Admin'
-    ? ['Employee', 'Manager', 'HR', 'Admin']
-    : ['Employee', 'Manager', 'HR']
+    ? ['Employee', 'Manager', 'HR', 'Admin','KT']
+    : ['Employee', 'Manager', 'HR','KT']
 }
 
 export function getRoleLabel(role) {

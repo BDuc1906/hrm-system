@@ -8,6 +8,11 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <AssemblyName>API</AssemblyName>
     <RootNamespace>API</RootNamespace>
+    <!-- Bat buoc de Microsoft.Data.SqlClient (EF Core SqlServer) hoat dong dung.
+         Phai dung cung base image co ICU (xem Dockerfile: chiseled-extra),
+         neu khong app se crash: System.NotSupportedException:
+         Globalization Invariant Mode is not supported. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>

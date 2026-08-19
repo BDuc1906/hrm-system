@@ -1,7 +1,12 @@
 # See https://aka.ms/customizecontainer to learn how to customize your debug container and how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled AS base
+# Dung ban "chiseled-extra": co kem ICU / globalization data, bat buoc de
+# Microsoft.Data.SqlClient hoat dong khi InvariantGlobalization=false (xem API.csproj).
+# Ban "chiseled" thuong (khong -extra) KHONG co ICU, nen khi ket hop voi
+# InvariantGlobalization=false, app se crash voi loi:
+#   System.NotSupportedException: Globalization Invariant Mode is not supported.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS base
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080

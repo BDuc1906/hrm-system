@@ -12,18 +12,19 @@ export const ROLE_LABELS = {
   HR: 'Nhân sự',
   Manager: 'Quản lý',
   Employee: 'Nhân viên',
+  KT: 'Kế toán',
 }
 
 // Route → role được phép truy cập
 export const ROUTE_ROLES = {
-  Dashboard: ['Admin', 'HR', 'Manager', 'Employee'],
+  Dashboard: ['Admin', 'HR', 'Manager', 'Employee','KT'],
   Employees: ['Admin', 'HR'],
   Departments: ['Admin', 'HR'],
-  AttendanceCheck: ['Admin', 'HR', 'Manager', 'Employee'],
-  AttendanceHistory: ['Admin', 'HR', 'Manager', 'Employee'],
-  LeaveManagement: ['Admin', 'HR', 'Manager', 'Employee'],
-  PayrollList: ['Admin', 'HR', 'Employee'],
-  PayrollReport: ['Admin', 'HR', 'Manager'],
+  AttendanceCheck: ['Admin', 'HR', 'Manager', 'Employee','KT'],
+  AttendanceHistory: ['Admin', 'HR', 'Manager', 'Employee','KT'],
+  LeaveManagement: ['Admin', 'HR', 'Manager', 'Employee','KT'],
+  PayrollList: ['Admin', 'HR', 'Employee','KT'],
+  PayrollReport: ['Admin', 'HR', 'Manager','KT'],
 }
 
 // Check user có quyền truy cập route không
@@ -41,6 +42,7 @@ export function canAccess(role, resource) {
     HR: ['employees', 'departments', 'attendance', 'leave', 'report'],
     Manager: ['attendance-own', 'leave-own', 'report-own'],
     Employee: ['attendance-own', 'leave-own', 'payroll-own'],
+    KT: ['attendance-own', 'leave-own', 'payroll', 'report', 'calculate'],
   }
   return map[role]?.includes(resource) ?? false
 }

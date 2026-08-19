@@ -46,16 +46,47 @@ namespace payroll_service.Controllers
             return (role, employeeId);
         }
 
-        /// <summary>Kiểm tra quyền xem lương</summary>
-        private bool CanViewPayroll(string payrollEmployeeId)
+        /// <summary>Lấy tên phòng ban của Manager hiện tại (để lọc dữ liệu theo phòng ban)</summary>
+        private async Task<string?> GetManagerDepartmentAsync(string? employeeId)
+        {
+            if (string.IsNullOrEmpty(employeeId)) return null;
+            var emp = await _hrClient.GetEmployeeExtendedAsync(employeeId);
+            return emp?.DepartmentName;
+        }
+
+        /// <summary>
+        /// Kiểm tra quyền xem lương.
+        /// FIX: trước đây chỉ Admin mới xem được payroll của người khác, HR và
+        /// Manager bị coi như Employee (chỉ xem của chính mình) dù frontend đã
+        /// cho phép HR/Manager vào các trang quản lý/báo cáo lương → HR/Manager
+        /// vào trang nhưng luôn bị 403 hoặc chỉ thấy đúng 1 dòng của bản thân.
+        /// Giờ: Admin/HR xem toàn công ty, Manager xem phòng ban mình quản lý,
+        /// Employee chỉ xem của chính mình.
+        /// </summary>
+        private async Task<bool> CanViewPayrollAsync(string payrollEmployeeId, string? payrollDepartment)
         {
             var (role, employeeId) = GetUserInfo();
-            if (role == "Admin")
+
+            if (role == "Admin" || role == "HR")
                 return true;
+
+            if (role == "Manager")
+            {
+                var deptName = await GetManagerDepartmentAsync(employeeId);
+                return !string.IsNullOrEmpty(deptName) && deptName == payrollDepartment;
+            }
+
             return employeeId == payrollEmployeeId;
         }
 
-        /// <summary>Lấy danh sách tất cả bảng lương (Admin) hoặc của nhân viên hiện tại (Employee)</summary>
+        /// <summary>
+        /// Lấy danh sách bảng lương theo phạm vi role:
+        /// Admin/HR = toàn công ty, Manager = phòng ban mình quản lý, Employee = của chính mình.
+        /// FIX: trước đây chỉ Admin xem được toàn bộ, mọi role khác (kể cả HR, Manager —
+        /// dù frontend cho phép họ vào trang "Bảng lương"/"Báo cáo lương") đều bị coi như
+        /// Employee, chỉ nhận về đúng 1 dòng của chính họ → trang quản lý/báo cáo lương
+        /// của HR, Manager luôn trống hoặc sai dữ liệu.
+        /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(List<PayrollDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -67,17 +98,32 @@ namespace payroll_service.Controllers
             {
                 var (role, employeeId) = GetUserInfo();
 
-                // Admin xem tất cả
-                if (role == "Admin")
+                var all = await _payrollService.GetAllPayrollsAsync();
+                if (!string.IsNullOrEmpty(payPeriod))
+                    all = all.Where(p => p.PayPeriod == payPeriod).ToList();
+
+                // Admin + HR: xem toàn công ty
+                if (role == "Admin" || role == "HR")
                 {
-                    _logger.LogInformation("Admin lấy danh sách tất cả bảng lương");
-                    var payrolls = await _payrollService.GetAllPayrollsAsync();
-                    if (!string.IsNullOrEmpty(payPeriod))
-                        payrolls = payrolls.Where(p => p.PayPeriod == payPeriod).ToList();
-                    return Ok(payrolls);
+                    _logger.LogInformation("{Role} lấy danh sách tất cả bảng lương", role);
+                    return Ok(all);
                 }
 
-                // Employee chỉ xem của mình
+                // Manager: chỉ xem bảng lương của phòng ban mình quản lý
+                if (role == "Manager")
+                {
+                    var deptName = await GetManagerDepartmentAsync(employeeId);
+                    var deptPayrolls = string.IsNullOrEmpty(deptName)
+                        ? new List<PayrollDTO>()
+                        : all.Where(p => p.DepartmentName == deptName).ToList();
+
+                    _logger.LogInformation(
+                        "Manager (phòng '{Dept}') lấy {Count} bản ghi lương",
+                        deptName ?? "(không xác định)", deptPayrolls.Count);
+                    return Ok(deptPayrolls);
+                }
+
+                // Employee: chỉ xem của chính mình
                 if (string.IsNullOrEmpty(employeeId))
                 {
                     _logger.LogWarning("Employee không có employeeId trong token");
@@ -85,11 +131,8 @@ namespace payroll_service.Controllers
                 }
 
                 _logger.LogInformation("Employee {EmployeeId} lấy bảng lương của mình", employeeId);
-                var allPayrolls = await _payrollService.GetAllPayrollsAsync();
-                var myPayrolls = allPayrolls.Where(p => p.EmployeeId == employeeId);
-                if (!string.IsNullOrEmpty(payPeriod))
-                    myPayrolls = myPayrolls.Where(p => p.PayPeriod == payPeriod);
-                return Ok(myPayrolls.ToList());
+                var myPayrolls = all.Where(p => p.EmployeeId == employeeId).ToList();
+                return Ok(myPayrolls);
             }
             catch (Exception ex)
             {
@@ -113,7 +156,7 @@ namespace payroll_service.Controllers
                 _logger.LogInformation("Lấy bảng lương với id: {Id}", id);
                 var payroll = await _payrollService.GetPayrollByIdAsync(id);
 
-                if (!CanViewPayroll(payroll.EmployeeId))
+                if (!await CanViewPayrollAsync(payroll.EmployeeId, payroll.DepartmentName))
                 {
                     _logger.LogWarning("Từ chối truy cập: nhân viên {UserId} cố xem lương của {EmployeeId}",
                         GetUserInfo().employeeId, payroll.EmployeeId);
@@ -149,7 +192,7 @@ namespace payroll_service.Controllers
                 _logger.LogInformation("Lấy phiếu lương với id: {Id}", id);
                 var payslip = await _payrollService.GetPayslipAsync(id);
 
-                if (!CanViewPayroll(payslip.EmployeeId))
+                if (!await CanViewPayrollAsync(payslip.EmployeeId, payslip.DepartmentName))
                 {
                     _logger.LogWarning("Từ chối truy cập phiếu lương: nhân viên {UserId} cố xem của {EmployeeId}",
                         GetUserInfo().employeeId, payslip.EmployeeId);
@@ -206,7 +249,7 @@ namespace payroll_service.Controllers
 
         /// <summary>Tạo bảng lương mới (chỉ Admin)</summary>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin, KT")]
         [ProducesResponseType(typeof(PayrollDTO), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -243,7 +286,7 @@ namespace payroll_service.Controllers
 
         /// <summary>Cập nhật bảng lương (chỉ Admin)</summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin, KT")]
         [ProducesResponseType(typeof(PayrollDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -276,7 +319,7 @@ namespace payroll_service.Controllers
 
         /// <summary>Xóa bảng lương (chỉ Admin)</summary>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin, KT")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -304,7 +347,7 @@ namespace payroll_service.Controllers
 
         /// <summary>Lấy báo cáo tổng lương (chỉ Admin)</summary>
         [HttpGet("report/summary")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin, KT")]
         [ProducesResponseType(typeof(PayrollReportDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -327,7 +370,7 @@ namespace payroll_service.Controllers
 
         /// <summary>Duyệt bảng lương và gửi phiếu lương qua email cho nhân viên</summary>
         [HttpPost("approve")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin, KT")]
         [ProducesResponseType(typeof(ApprovePayrollResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -364,7 +407,7 @@ namespace payroll_service.Controllers
         /// Nâng cấp: tích hợp Contract + xử lý nhân viên Inactive nghỉ giữa tháng
         /// </summary>
         [HttpPost("calculate-all")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin, KT")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

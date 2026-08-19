@@ -106,8 +106,15 @@
           </a-menu-item>
         </a-menu-item-group>
 
-        <!-- Lương — Admin, HR, Employee (không có Manager) -->
-        <a-menu-item-group v-if="auth.isAdmin || auth.isHR || auth.isEmployee">
+        <!--
+          FIX: trước đây nhóm cha chỉ v-if="isAdmin || isHR || isEmployee" nên
+          với Manager, CẢ NHÓM (kể cả mục "Báo cáo" vốn được phép hiện với
+          Manager) bị ẩn hoàn toàn dù route + v-if của chính mục đó đã cho phép.
+          → Manager không bao giờ thấy được nút "Báo cáo" dù có quyền.
+          Giờ nhóm cha hiện nếu có ÍT NHẤT 1 mục con hợp lệ với role hiện tại,
+          từng mục con tự quyết định việc hiển thị của chính nó.
+        -->
+        <a-menu-item-group v-if="auth.isAdmin || auth.isHR || auth.isEmployee || auth.isManager || auth.isAccountant">
           <template #title>
             <span
               v-if="!collapsed"
@@ -122,12 +129,13 @@
               >Lương</span
             >
           </template>
-          <a-menu-item key="/app/payroll/list">
+          <!-- Bảng lương — Admin, HR, Employee (không có Manager) -->
+          <a-menu-item v-if="auth.isAdmin || auth.isHR || auth.isEmployee || auth.isAccountant" key="/app/payroll/list">
             <template #icon><DollarOutlined /></template>
             <span>Bảng lương</span>
           </a-menu-item>
           <!-- Báo cáo — Admin, HR, Manager (không Employee) -->
-          <a-menu-item v-if="auth.isAdmin || auth.isHR || auth.isManager" key="/app/payroll/report">
+          <a-menu-item v-if="auth.isAdmin || auth.isHR || auth.isManager || auth.isAccountant" key="/app/payroll/report">
             <template #icon><BarChartOutlined /></template>
             <span>Báo cáo</span>
           </a-menu-item>
